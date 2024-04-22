@@ -12,7 +12,7 @@ cd build
 cmake ..
 make
 
-##todo change please!
+##todo change please harcoded path in cc and cxx wrappers of enumetric!
 mkdir -p /home/tiziano/Documents/Enumetric/build/lib/
 ln -s /src/Enumetric/build/lib/libEnumetric.so /home/tiziano/Documents/Enumetric/build/lib/
 ln -s /src/Enumetric/build/lib/libFED.so  /home/tiziano/Documents/Enumetric/build/lib/
