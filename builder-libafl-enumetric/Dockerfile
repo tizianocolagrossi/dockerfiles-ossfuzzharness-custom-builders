@@ -1,4 +1,4 @@
-FROM base-clang:latest
+FROM oss/base-clang
 
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh \

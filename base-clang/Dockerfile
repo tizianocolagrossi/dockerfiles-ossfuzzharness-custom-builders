@@ -16,7 +16,7 @@
 
 # Docker image with head clang installed.
 
-FROM fuzz-base:v0
+FROM oss/base-image
 
 ARG arch=x86_64
 
