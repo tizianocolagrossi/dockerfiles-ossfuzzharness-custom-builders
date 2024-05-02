@@ -1,5 +1,7 @@
 FROM oss/base-clang
 
+ARG enumetric-version=v0.2.4
+
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh \
   git clone git@github.com:tizianocolagrossi/Enumetric.git /src/Enumetric
@@ -10,7 +12,7 @@ RUN --mount=type=ssh \
 COPY checkout_build_enumetric.sh /root/
 # # Keep all steps in the same script to decrease the number of intermediate
 # # layes in docker file.
-RUN /root/checkout_build_enumetric.sh
+RUN /root/checkout_build_enumetric.sh $enumetric-version
 RUN rm /root/checkout_build_enumetric.sh
 
 
