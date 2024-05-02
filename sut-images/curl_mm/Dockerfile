@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM builder-libafl-enumetric
+FROM builder/libafl-enumetric_mm:v0.2.4
 
 RUN git clone --depth 1 https://github.com/curl/curl.git /src/curl
 RUN git clone --depth 1 https://github.com/curl/curl-fuzzer.git /src/curl_fuzzer
