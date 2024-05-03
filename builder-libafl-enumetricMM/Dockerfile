@@ -1,4 +1,4 @@
-FROM oss/base-clang
+FROM oss-base-clang
 
 ARG enumetric-version=v0.2.4
 
