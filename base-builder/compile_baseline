@@ -77,14 +77,13 @@ if [ "$SANITIZER" = "undefined" ]; then
 fi
 
 # Copy latest llvm-symbolizer in $OUT for stack symbolization.
-cp $(which llvm-symbolizer) $OUT/
+cp $(which llvm-symbolizer-13) $OUT/
 
 echo "---------------------------------------------------------------"
 echo "CC=$CC"
 echo "CXX=$CXX"
 echo "CFLAGS=$CFLAGS"
 echo "CXXFLAGS=$CXXFLAGS"
-echo "RUSTFLAGS=$RUSTFLAGS"
 echo "---------------------------------------------------------------"
 
 if [ "${OSS_FUZZ_ON_DEMAND}" != "0" ]; then

@@ -60,10 +60,11 @@ fi
 export CUSTOM_LIBFUZZER_PATH="$LIB_FUZZING_ENGINE_DEPRECATED"
 export CUSTOM_LIBFUZZER_STD_CXX=c++
 
+
 export CFLAGS="--libafl $CFLAGS $SANITIZER_FLAGS $COVERAGE_FLAGS"
 export CXXFLAGS="--libafl $CFLAGS $CXXFLAGS_EXTRA"
 
-export SINGLE_CTX=1
+export ACOV=1
 
 export CC="enumetricmm_cc"
 export CXX="enumetricmm_cxx"

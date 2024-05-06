@@ -119,17 +119,11 @@ ENV FUZZER_LDFLAGS ""
 WORKDIR $SRC
 
 COPY compile \
+    compile_analysis \
     compile_baseline \
     compile_enumetric \
     compile_enumetric++ \
     targets_list \
     /usr/local/bin/
-
-# TODO: Build this as part of a multi-stage build.
-ADD https://commondatastorage.googleapis.com/clusterfuzz-builds/jcc/clang-jcc /usr/local/bin/
-ADD https://commondatastorage.googleapis.com/clusterfuzz-builds/jcc/clang++-jcc /usr/local/bin/
-RUN chmod +x /usr/local/bin/clang-jcc && chmod +x /usr/local/bin/clang++-jcc
-
-COPY detect_repo.py /opt/cifuzz/
 
 CMD ["compile"]
