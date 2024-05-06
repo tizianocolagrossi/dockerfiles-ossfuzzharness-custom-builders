@@ -34,6 +34,8 @@ COPY checkout_build_enumetric.sh /root/
 RUN /root/checkout_build_enumetric.sh $enumetric-version
 RUN rm /root/checkout_build_enumetric.sh
 
+RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
+
 # Build and install latest Python 3 (3.8.3).
 ENV PYTHON_VERSION 3.8.3
 RUN export PYTHON_DEPS="\
@@ -62,14 +64,6 @@ RUN export PYTHON_DEPS="\
     rm -rf /usr/local/lib/python3.8/test && \
     apt-get remove -y $PYTHON_DEPS # https://github.com/google/oss-fuzz/issues/3888
 
-# Install six for Bazel rules.
-RUN unset CFLAGS CXXFLAGS && pip3 install -v --no-cache-dir \
-    six==1.15.0 && rm -rf /tmp/*
-
-# Install Bazel through Bazelisk, which automatically fetches the latest Bazel version.
-ENV BAZELISK_VERSION 1.9.0
-RUN curl -L https://github.com/bazelbuild/bazelisk/releases/download/v$BAZELISK_VERSION/bazelisk-linux-amd64 -o /usr/local/bin/bazel && \
-    chmod +x /usr/local/bin/bazel
 
 # Default build flags for various sanitizers.
 ENV SANITIZER_FLAGS_address "-fsanitize=address -fsanitize-address-use-after-scope"
@@ -128,6 +122,7 @@ COPY compile \
     compile_baseline \
     compile_enumetric \
     compile_enumetric++ \
+    targets_list \
     /usr/local/bin/
 
 # TODO: Build this as part of a multi-stage build.
@@ -135,8 +130,6 @@ ADD https://commondatastorage.googleapis.com/clusterfuzz-builds/jcc/clang-jcc /u
 ADD https://commondatastorage.googleapis.com/clusterfuzz-builds/jcc/clang++-jcc /usr/local/bin/
 RUN chmod +x /usr/local/bin/clang-jcc && chmod +x /usr/local/bin/clang++-jcc
 
-COPY llvmsymbol.diff $SRC
 COPY detect_repo.py /opt/cifuzz/
-COPY bazel.bazelrc /root/.bazelrc
 
 CMD ["compile"]
