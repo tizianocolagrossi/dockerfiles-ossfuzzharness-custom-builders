@@ -26,7 +26,7 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y libc6-dev binutils libgcc-9-dev tzdata && \
+    apt-get install -y libc6-dev binutils libgcc-9-dev tzdata zip  && \
     apt-get autoremove -y
 
 ENV OUT=/out

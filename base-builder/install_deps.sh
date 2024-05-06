@@ -1,4 +1,5 @@
-# Copyright 2016 Google Inc.
+#!/bin/bash -eux
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,15 +15,30 @@
 #
 ################################################################################
 
-FROM builder/libafl-baseline:v0.2.4
+# Install base-builder's dependencies in a architecture-aware way.
 
-RUN git clone --depth 1 https://github.com/curl/curl.git /src/curl
-RUN git clone --depth 1 https://github.com/curl/curl-fuzzer.git /src/curl_fuzzer
 
-# Use curl-fuzzer's scripts to get latest dependencies.
-RUN $SRC/curl_fuzzer/scripts/ossfuzzdeps.sh
+case $(uname -m) in
+    x86_64)
+	dpkg --add-architecture i386
+        ;;
+esac
 
-WORKDIR $SRC/curl_fuzzer
-COPY build.sh $SRC/
-COPY install_openssl.sh.diff $SRC/
-RUN git apply $SRC/install_openssl.sh.diff
+apt-get update && \
+    apt-get install -y \
+        binutils-dev \
+        build-essential \
+        curl \
+        wget \
+        git \
+        jq \
+        patchelf \
+        rsync \
+        subversion \
+        zip
+
+case $(uname -m) in
+    x86_64)
+	apt-get install -y libc6-dev-i386
+        ;;
+esac

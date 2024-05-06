@@ -1,6 +1,6 @@
 #! /bin/bash
 ENUMETRIC_VERSION=$1
-LIBAFL_BRANCH=OnDiskCSVMonitor
+LIBAFL_BRANCH=enumetric-tmp-branch
 
 echo BUILDING ENUMETRIC WITH VERSION $ENUMETRIC_VERSION
 
@@ -23,5 +23,3 @@ cd /src/Enumetric/enumetric_fuzzer
 /root/.cargo/bin/cargo build --release
 
 cp -r /src/Enumetric/enumetric_fuzzer/target/release/* /usr/local/bin
-
-

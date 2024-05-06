@@ -39,6 +39,10 @@ COPY checkout_build_install_llvm_rust.sh /root/
 RUN /root/checkout_build_install_llvm_rust.sh
 RUN rm /root/checkout_build_install_llvm_rust.sh
 
+COPY create_dummy_libFuzzingEngine /root/
+RUN /root/create_dummy_libFuzzingEngine
+RUN rm /root/create_dummy_libFuzzingEngine
+
 # Setup the environment.
 ENV CC "clang-13"
 ENV CXX "clang++-13"

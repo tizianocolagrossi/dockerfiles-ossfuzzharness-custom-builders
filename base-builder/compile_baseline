@@ -21,13 +21,44 @@ sysctl -w vm.mmap_rnd_bits=28
 
 OSS_FUZZ_ON_DEMAND="${OSS_FUZZ_ON_DEMAND:-0}"
 
-# This is a temporary fix: fall back to LLVM14's old pass manager
-
 if [ -z "${SANITIZER_FLAGS-}" ]; then
   FLAGS_VAR="SANITIZER_FLAGS_${SANITIZER}"
   export SANITIZER_FLAGS=${!FLAGS_VAR-}
 fi
 
+if [[ $ARCHITECTURE == "i386" ]]; then
+    export CFLAGS="-m32 $CFLAGS"
+    cp -R /usr/i386/lib/* /usr/local/lib
+    cp -R /usr/i386/include/* /usr/local/include
+fi
+
+if [[ $SANITIZER_FLAGS = *sanitize=memory* ]]
+then
+  # Take all libraries from lib/msan
+  # export CXXFLAGS_EXTRA="-L/usr/msan/lib $CXXFLAGS_EXTRA"
+  cp -R /usr/msan/lib/* /usr/local/lib/x86_64-unknown-linux-gnu/
+  cp -R /usr/msan/include/* /usr/local/include
+
+  echo 'Building without MSan instrumented libraries.'
+fi
+
+# Coverage flag overrides.
+COVERAGE_FLAGS_VAR="COVERAGE_FLAGS_${SANITIZER}"
+if [[ -n ${!COVERAGE_FLAGS_VAR+x} ]]
+then
+  export COVERAGE_FLAGS="${!COVERAGE_FLAGS_VAR}"
+fi
+
+# Only need the default coverage instrumentation for libFuzzer or honggfuzz.
+# Other engines bring their own.
+if [ $FUZZING_ENGINE = "none" ] || [ $FUZZING_ENGINE = "afl" ] || [ $FUZZING_ENGINE = "centipede" ] || [ "${OSS_FUZZ_ON_DEMAND}" != "0" ]; then
+  export COVERAGE_FLAGS=
+fi
+
+# Add Rust libfuzzer flags.
+# See https://github.com/rust-fuzz/libfuzzer/blob/master/build.rs#L12.
+export CUSTOM_LIBFUZZER_PATH="$LIB_FUZZING_ENGINE_DEPRECATED"
+export CUSTOM_LIBFUZZER_STD_CXX=c++
 
 export CFLAGS="--libafl $CFLAGS $SANITIZER_FLAGS $COVERAGE_FLAGS"
 export CXXFLAGS="--libafl $CFLAGS $CXXFLAGS_EXTRA"
@@ -36,16 +67,31 @@ export CC="baseline_cc"
 export CXX="baseline_cxx"
 export CCC="baseline_cxx"
 
+if [ "$SANITIZER" = "undefined" ]; then
+  # Disable "function" sanitizer for C code for now, because many projects,
+  # possibly via legacy C code are affected.
+  # The projects should be fixed and this workaround be removed in the future.
+  # TODO(#11778):
+  # https://github.com/google/oss-fuzz/issues/11778
+  export CFLAGS="$CFLAGS -fno-sanitize=function"
+fi
 
 # Copy latest llvm-symbolizer in $OUT for stack symbolization.
-cp $(which llvm-symbolizer-13) $OUT/llvm-symbolizer
+cp $(which llvm-symbolizer) $OUT/
 
 echo "---------------------------------------------------------------"
 echo "CC=$CC"
 echo "CXX=$CXX"
 echo "CFLAGS=$CFLAGS"
 echo "CXXFLAGS=$CXXFLAGS"
+echo "RUSTFLAGS=$RUSTFLAGS"
 echo "---------------------------------------------------------------"
+
+if [ "${OSS_FUZZ_ON_DEMAND}" != "0" ]; then
+  fuzzbench_build
+  cp $(which llvm-symbolizer-13) $OUT/
+  exit 0
+fi
 
 BUILD_CMD="bash -eux $SRC/build.sh"
 

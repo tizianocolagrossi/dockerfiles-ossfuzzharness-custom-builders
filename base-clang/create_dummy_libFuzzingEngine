@@ -1,0 +1,10 @@
+#! /bin/bash
+
+echo "// dummy.c" > dummy.c
+gcc -c dummy.c -o dummy.o
+ar rcs libFuzzingEngine.a dummy.o
+cp libFuzzingEngine.a /usr/local/lib
+cp libFuzzingEngine.a /usr/local/bin
+cp libFuzzingEngine.a /usr/lib
+cp libFuzzingEngine.a /usr/bin
+rm dummy.c dummy.o libFuzzingEngine.a
