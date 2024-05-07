@@ -1,5 +1,5 @@
 #! /bin/bash
-ENUMETRIC_VERSION=$1
+# ENUMETRIC_VERSION=$1
 LIBAFL_BRANCH=enumetric-tmp-branch
 
 echo BUILDING ENUMETRIC WITH VERSION $ENUMETRIC_VERSION
@@ -8,7 +8,7 @@ cd /src/LibAFL
 git checkout $LIBAFL_BRANCH
 
 cd /src/Enumetric
-git checkout tags/$ENUMETRIC_VERSION
+# git checkout tags/$ENUMETRIC_VERSION
 mkdir build
 cd build
 cmake ..

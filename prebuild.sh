@@ -14,7 +14,7 @@ docker build -t oss-base-runner ./base-runner
 # docker build -t enumetric-analysis:$1 ./analysis-libafl-enumetric
 
 DOCKER_BUILDKIT=1 docker build \
-    --build-arg enumetric-version=$1 \
+    --build-arg enumetricversion=$1 \
     -t base-builder:$1 \
     --ssh default=$HOME/.ssh/id_ed25519 \
     ./base-builder
