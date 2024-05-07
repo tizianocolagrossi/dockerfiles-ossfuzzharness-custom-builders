@@ -19,19 +19,23 @@ FROM oss-base-clang
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
 
-ARG enumetric-version=v0.2.4
+ARG enumetricversion=v0.2.4
 
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 RUN --mount=type=ssh \
   git clone git@github.com:tizianocolagrossi/Enumetric.git /src/Enumetric
 
 RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/LibAFL.git /src/LibAFL
+  git -C /src/Enumetric checkout tags/$enumetricversion
+
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/LibAFL.git /src/LibAFL 
 
 COPY checkout_build_enumetric.sh /root/
 # # Keep all steps in the same script to decrease the number of intermediate
 # # layes in docker file.
-RUN /root/checkout_build_enumetric.sh $enumetric-version
+RUN --mount=type=ssh \
+  /root/checkout_build_enumetric.sh
 RUN rm /root/checkout_build_enumetric.sh
 
 RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
