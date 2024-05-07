@@ -29,10 +29,17 @@ cp ./bin/fuzz-read-print-write $OUT
 cp ../fuzz/exiv2.dict $OUT/fuzz-read-print-write.dict
 
 # Initialize the corpus, using the files in test/data
-mkdir corpus
-for f in $(find ../test/data -type f -size -20k); do
-    s=$(sha1sum "$f" | awk '{print $1}')
-    cp $f corpus/$s
+# mkdir corpus
+# for f in $(find ../test/data -type f -size -20k); do
+#     s=$(sha1sum "$f" | awk '{print $1}')
+#     cp $f corpus/$s
+# done
+mkdir $SRC/corpus
+git clone https://github.com/unifuzz/seeds.git $SRC/seeds
+for f in $SRC/seeds/general_evaluation/jpg/* ; do
+  s=$(sha1sum "$f" | awk '{print $1}')
+  cp $f $SRC/corpus/$s
 done
 
-zip -j $OUT/fuzz-read-print-write.zip corpus/*
+zip -j $OUT/fuzz-read-print-write.zip $SRC/corpus/*
+
