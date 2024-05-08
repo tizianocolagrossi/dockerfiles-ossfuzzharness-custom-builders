@@ -23,8 +23,6 @@ sysctl -w vm.mmap_rnd_bits=28
 export PATH=$OUT:$PATH
 cd $OUT
 
-DEBUGGER=${DEBUGGER:-}
-
 FUZZER=$1
 shift
 
@@ -37,14 +35,7 @@ then
   rm -rf $CORPUS_DIR && mkdir -p $CORPUS_DIR
 fi
 
-SANITIZER=${SANITIZER:-}
-if [ -z $SANITIZER ]; then
-  # If $SANITIZER is not specified (e.g. calling from `reproduce` command), it
-  # is not important and can be set to any value.
-  SANITIZER="default"
-fi
-
-FUZZER_OUT="$OUT/${FUZZER}_${FUZZ_OUT_DIR_NAME}_${SANITIZER}_out"
+FUZZER_OUT="$OUT/${FUZZER}_${FUZZ_OUT_DIR_NAME}"
 
 function get_dictionary() {
   local options_file="$FUZZER.options"
@@ -61,31 +52,18 @@ function get_dictionary() {
      printf -- "-dict=%s" "$dict"
   elif [[ "$FUZZING_ENGINE" = "afl" ]]; then
      printf -- "-x %s" "$dict"
-  elif [[ "$FUZZING_ENGINE" = "libafl-baseline" ]] || [[ "$FUZZING_ENGINE" = "libafl-enumetric" ]] || [[ "$FUZZING_ENGINE" = "libafl-enumetricMM" ]]; then
+  elif [[ "$FUZZING_ENGINE" = "libafl" ]] ; then
      printf -- "-x %s" "$dict"
   else
      printf "Unexpected FUZZING_ENGINE: $FUZZING_ENGINE, ignoring\n" >&2
   fi
 }
 
-function get_extra_binaries() {
-  [[ "$FUZZING_ENGINE" != "centipede" ]] && return
-
-  extra_binaries="$OUT/__centipede_${SANITIZER}/${FUZZER}"
-  if compgen -G "$extra_binaries" >> /dev/null; then
-    printf -- "--extra_binaries %s" \""$extra_binaries\""
-  fi
-
-}
-
 rm -rf $FUZZER_OUT && mkdir -p $FUZZER_OUT
 
 SEED_CORPUS="${FUZZER}_seed_corpus.zip"
 
-# TODO: Investigate why this code block is skipped
-# by all default fuzzers in bad_build_check.
-# They all set SKIP_SEED_CORPUS=1.
-if [ -f $SEED_CORPUS ] && [ -z ${SKIP_SEED_CORPUS:-} ]; then
+if [ -f $SEED_CORPUS ] ; then
   echo "Using seed corpus: $SEED_CORPUS"
   unzip -o -d ${CORPUS_DIR}/ $SEED_CORPUS > /dev/null
 fi
@@ -147,7 +125,7 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   env|grep AFL_
   cat "$OUT/afl_options.txt"
 
-elif [[ "$FUZZING_ENGINE" = libafl-* ]]; then
+elif [[ "$FUZZING_ENGINE" = libafl ]]; then
 
 #   Set afl++ environment options.
   export ASAN_OPTIONS="$ASAN_OPTIONS:abort_on_error=1:symbolize=0:detect_odr_violation=0:"
@@ -160,7 +138,7 @@ elif [[ "$FUZZING_ENGINE" = libafl-* ]]; then
   LIBAFL_FUZZER_ARGS="-t 5000"
 
   # AFL expects at least 1 file in the input dir.
-  echo input > ${CORPUS_DIR}/input
+  echo hi > ${CORPUS_DIR}/0
   
 
   CMD_LINE="timeout $TIMEOUT $OUT/$FUZZER $LIBAFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZER_OUT $(get_dictionary) $*"
@@ -193,9 +171,5 @@ echo $CMD_LINE
 
 # Unset OUT so the fuzz target can't rely on it.
 unset OUT
-
-if [ ! -z "$DEBUGGER" ]; then
-  CMD_LINE="$DEBUGGER $CMD_LINE"
-fi
 
 bash -c "$CMD_LINE"
