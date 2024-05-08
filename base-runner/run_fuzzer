@@ -137,7 +137,7 @@ elif [[ "$FUZZING_ENGINE" = libafl ]]; then
   echo hi > ${CORPUS_DIR}/0
   
 
-  CMD_LINE="timeout $TIMEOUT $OUT/$FUZZER $LIBAFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $*"
+  CMD_LINE="timeout $TIMEOUT $OUT/$FUZZER $* $LIBAFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary)"
 
   echo $CMD_LINE
   echo libafl setup:
