@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.4
+FROM base-builder:v0.2.5tmp3
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \

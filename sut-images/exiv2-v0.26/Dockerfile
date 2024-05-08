@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 ################################################################################
-FROM base-builder:v0.2.4
+FROM base-builder:v0.2.5tmp3
 
 RUN git clone https://github.com/Exiv2/exiv2 exiv2
 RUN ./exiv2/ci/install_dependencies.sh
@@ -21,4 +21,4 @@ WORKDIR exiv2
 RUN git fetch --all -pP 
 RUN git checkout tags/v0.26
 
-COPY build.sh $SRC/
+COPY build.sh exiv2-v0.26.diff $SRC/
