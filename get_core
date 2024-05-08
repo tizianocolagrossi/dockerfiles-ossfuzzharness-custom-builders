@@ -1,0 +1,23 @@
+#!/bin/sh -eu
+
+# if [ ! -d $HOME/fuzzcores/ ] ; then
+#     mkdir -p $HOME/fuzzcores 
+#     for i in $(seq 0 $(nproc)) ; do touch $HOME/fuzzcores/$i ; done
+# fi
+
+#advanced bash stuff not needed
+: >> /var/lock/gotcpulock #create a file if it doesn't exist
+{
+flock 3 #lock file by filedescriptor
+
+echo $$ working with lock
+core_id=$(afl-gotcpu | grep AVAILABLE | tr -s " " | cut -d " " -f 3 | tr -d "#" | tr -d ":" | sort -h | head -n 1)
+echo $$ done with lock
+
+} 3</var/lock/gotcpulock
+
+echo $core_id
+## tieni occupato x core
+taskset -c $core_id stress --cpu 1 --timeout 10 2>&1 > /dev/null &
+CMD_LINE="$*"
+bash -c "$CMD_LINE --cpuset-cpus=$core_id" 
