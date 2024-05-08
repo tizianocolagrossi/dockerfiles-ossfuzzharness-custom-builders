@@ -20,4 +20,4 @@ echo $core_id
 ## tieni occupato x core
 taskset -c $core_id stress --cpu 1 --timeout 10 2>&1 > /dev/null &
 CMD_LINE="$*"
-bash -c "$CMD_LINE --cpuset-cpus=$core_id" 
+bash -c "docker run --cpuset-cpus=$core_id $CMD_LINE " 
