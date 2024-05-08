@@ -35,8 +35,6 @@ then
   rm -rf $CORPUS_DIR && mkdir -p $CORPUS_DIR
 fi
 
-FUZZER_OUT="$OUT/${FUZZER}_${FUZZ_OUT_DIR_NAME}"
-
 function get_dictionary() {
   local options_file="$FUZZER.options"
   local dict_file="$FUZZER.dict"
@@ -58,8 +56,6 @@ function get_dictionary() {
      printf "Unexpected FUZZING_ENGINE: $FUZZING_ENGINE, ignoring\n" >&2
   fi
 }
-
-rm -rf $FUZZER_OUT && mkdir -p $FUZZER_OUT
 
 SEED_CORPUS="${FUZZER}_seed_corpus.zip"
 
@@ -119,7 +115,7 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   # AFL expects at least 1 file in the input dir.
   echo input > ${CORPUS_DIR}/input
 
-  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZER_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
+  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
 
   echo afl++ setup:
   env|grep AFL_

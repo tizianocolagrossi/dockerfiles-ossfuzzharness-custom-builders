@@ -49,6 +49,8 @@ ENV UBSAN_OPTIONS="print_stacktrace=1:print_summary=1:silence_unsigned_overflow=
 ENV FUZZER_ARGS="-rss_limit_mb=2560 -timeout=25"
 ENV AFL_FUZZER_ARGS="-m none"
 
+ENV FUZZ_OUT=/fuzz_out
+RUN mkdir -p $FUZZ_OUT
 
 # Do this last to make developing these files easier/faster due to caching.
 COPY download_corpus \
