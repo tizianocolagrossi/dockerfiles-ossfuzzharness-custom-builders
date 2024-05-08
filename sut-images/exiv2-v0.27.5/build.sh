@@ -35,4 +35,4 @@ for f in $(find ../test/data -type f -size -20k); do
     cp $f corpus/$s
 done
 
-zip -j $OUT/fuzz-read-print-write.zip corpus/*
+zip -j $OUT/fuzz-read-print-write_seed_corpus.zip corpus/*

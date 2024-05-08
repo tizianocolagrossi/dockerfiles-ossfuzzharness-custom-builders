@@ -37,6 +37,6 @@ $CXX $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/lib
 
 mkdir $SRC/corpus
 echo "hi" > $SRC/corpus/seed
-zip -j $OUT/xml.zip $SRC/corpus/*
+zip -j $OUT/xml_seed_corpus.zip $SRC/corpus/*
 
 popd

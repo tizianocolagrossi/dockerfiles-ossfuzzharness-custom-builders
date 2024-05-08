@@ -56,5 +56,5 @@ for f in $SRC/seeds/general_evaluation/jpg/* ; do
   cp $f $SRC/corpus/$s
 done
 
-zip -j $OUT/fuzz-read-print-write.zip $SRC/corpus/*
+zip -j $OUT/fuzz-read-print-write_seed_corpus.zip $SRC/corpus/*
 
