@@ -15,18 +15,33 @@
 #
 ################################################################################
 
+git checkout tags/v0.27.5
+cp ./fuzz/fuzz-read-print-write.cpp $SRC
+cp ./fuzz/exiv2.dict $SRC
+git checkout tags/v0.26
+
+git apply $SRC/exiv2-v0.26.diff
+
+CXXFLAGS="--libafl -O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+
 # Added to fix a false positive result: https://github.com/google/oss-fuzz/issues/6489
 CXXFLAGS="${CXXFLAGS} -fno-sanitize=float-divide-by-zero"
 
 # Build Exiv2
 mkdir -p build
 cd build
-cmake -DEXIV2_ENABLE_PNG=ON -DEXIV2_ENABLE_WEBREADY=ON -DEXIV2_ENABLE_CURL=OFF -DEXIV2_ENABLE_BMFF=ON -DEXIV2_TEAM_WARNINGS_AS_ERRORS=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_CXX_COMPILER="${CXX}" -DCMAKE_CXX_FLAGS="${CXXFLAGS}" -DEXIV2_BUILD_FUZZ_TESTS=ON -DEXIV2_TEAM_OSS_FUZZ=ON -DLIB_FUZZING_ENGINE="${LIB_FUZZING_ENGINE}" -DEXIV2_ENABLE_INIH=OFF ..
+cmake -DEXIV2_ENABLE_SHARED=Off ..
 make -j $(nproc)
 
+
+mkdir fuzz
+cd fuzz
+
+$CXX $SRC/fuzz-read-print-write.cpp -lexiv2 -lz -lexpat -linih -lbrotlienc -lbrotlidec -lbrotlicommon -lxmp --libafl -L../src -L../xmpsdk -I ../ -I ../../include/ -o $OUT/fuzz-read-print-write
+
+
 # Copy binary and dictionary to $OUT
-cp ./bin/fuzz-read-print-write $OUT
-cp ../fuzz/exiv2.dict $OUT/fuzz-read-print-write.dict
+cp $SRC/exiv2.dict $OUT/fuzz-read-print-write.dict
 
 # Initialize the corpus, using the files in test/data
 # mkdir corpus
