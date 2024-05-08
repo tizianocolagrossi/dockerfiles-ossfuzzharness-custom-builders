@@ -4,7 +4,7 @@
 #     mkdir -p $HOME/fuzzcores 
 #     for i in $(seq 0 $(nproc)) ; do touch $HOME/fuzzcores/$i ; done
 # fi
-
+sleep 4
 #advanced bash stuff not needed
 : >> /var/lock/gotcpulock #create a file if it doesn't exist
 {
