@@ -11,6 +11,7 @@ fi
 docker build -t oss-base-image  ./base-image
 docker build -t oss-base-clang  ./base-clang
 docker build -t oss-base-runner ./base-runner
+docker build -t oss-base-analysis ./base-analysis
 # docker build -t enumetric-analysis:$1 ./analysis-libafl-enumetric
 
 DOCKER_BUILDKIT=1 docker build \
