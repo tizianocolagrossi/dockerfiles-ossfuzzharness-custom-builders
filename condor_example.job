@@ -1,0 +1,12 @@
+# Example 1
+# Simple HTCondor submit description file
+# Everything with a leading # is a comment
+
+executable   = /usr/local/bin/docker-run-cpu-affinity
+arguments    = --rm -v ~/sut-docker/xpdf-v4.00/baseline/:/out -v ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog-$(Process):/fuzz_out  -e FUZZING_ENGINE=libafl -e TIMEOUT=10m -t oss-base-runner run_fuzzer fuzz_pdfload
+
+request_cpus   = 1
+request_memory = 16000M
+request_disk   = 2048M
+
+queue 3
