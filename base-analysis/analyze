@@ -1,0 +1,33 @@
+#!/bin/bash 
+
+sysctl -w vm.mmap_rnd_bits=28
+
+export PATH=$OUT:$PATH
+cd $OUT
+
+FUZZER=$1
+shift
+
+QUEUE_TEST_CASE=$FUZZ_OUT/queue/*
+CRASHES=$FUZZ_OUT/crashes/
+# Ensure timeout is a bit larger than 1sec as some of the OSS-Fuzz fuzzers
+# are slower than this.
+LIBAFL_FUZZER_ARGS="-t 5000"
+
+CMD_LINE_CCOV_ECOV="$OUT/$FUZZER $LIBAFL_FUZZER_ARGS -d -r -m $QUEUE_TEST_CASE"
+
+CMD_CCOV_MERGE="llvm-profdata-13 merge $OUT/default.profraw -o $OUT/default.profdata" 
+CMD_CCOV_EXPORT="llvm-cov-13 export --format=text --instr-profile $OUT/default.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json"
+
+# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout -t 15000 -- $OUT/$FUZZER @@
+# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --bucket-strategy first_5_frames -t 15000 -- $OUT/$FUZZER @@
+# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --bucket-strategy first_frame -t 15000 -- $OUT/$FUZZER @@
+
+CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --bucket-strategy first_5_frames -t 15000 -- $OUT/$FUZZER @@"
+CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --bucket-strategy first_frame -t 15000 -- $OUT/$FUZZER @@"
+
+bash -c "$CMD_LINE_CCOV_ECOV"
+bash -c "$CMD_CCOV_MERGE"
+bash -c "$CMD_CCOV_EXPORT"
+bash -c "$CMD_LINE_DEDUP_CRASH_1"
+bash -c "$CMD_LINE_DEDUP_CRASH_5"
