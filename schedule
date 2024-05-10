@@ -1,0 +1,52 @@
+#! /bin/bash
+
+#docker-run-cpu-affinity --rm -v ~/sut-docker/xpdf-v4.00/baseline/:/out -v ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog-$id:/fuzz_out -e FUZZING_ENGINE=libafl -e TIMEOUT=5m -t oss-base-runner run_fuzzer fuzz_pdfload
+
+perform_task() {
+    fuzzer=$1
+    shift
+    fuzzer_dir=$1
+    shift
+    output_dir=$1
+    shift
+    runs=$1
+    shift
+    timeout=$1
+    shift
+    min_start=$1
+    shift
+    
+    ls $fuzzer_dir > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+	echo "ERROR $fuzzer_dir do not exist"
+	exit 1
+    fi
+    ls $fuzzer_dir/$fuzzer > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+        echo "ERROR $fuzzer not present in $fuzzer_dir"
+        exit 1
+    fi
+    # Loop from core_start to core_end
+    for counter in $(seq 1 ${runs}); do
+	minutes=$(($counter+$min_start))
+	echo "docker-run-cpu-affinity -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"
+	echo "docker-run-cpu-affinity -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+    done
+}
+
+#             fuzzer       fuzz_dir                          out_dir_prefx                                run timeout  min_start additional_options
+#perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   5m       1         -c
+
+# xpdf-4.00 cmplog baseline
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 3 24h 0 -c
+# xpdf-4.00 baseline
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline 3 24h 3
+# xpdf-4.00 enumetric cmplog
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric-cmplog 3 24h 6 -c
+# xpdf-4.00 enumetric
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric 3 24h 1455
+# xpdf-4.00 enumetric cmplog
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++-cmplog 3 24h 1458 -c
+# xpdf-4.00 enumetric
+perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++ 3 24h 1461
+
