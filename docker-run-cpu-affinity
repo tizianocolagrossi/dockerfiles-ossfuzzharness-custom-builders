@@ -10,14 +10,10 @@ sleep 4
 {
 flock 3 #lock file by filedescriptor
 
-echo $$ working with lock
+# echo $$ working with lock
 core_id=$(afl-gotcpu | grep AVAILABLE | tr -s " " | cut -d " " -f 3 | tr -d "#" | tr -d ":" | sort -h | head -n 1)
-echo $$ done with lock
+CMD_LINE="$*"
+bash -c "docker run --cpuset-cpus=$core_id --detach $CMD_LINE " 
+# echo $$ done with lock
 
 } 3</var/lock/gotcpulock
-
-echo $core_id
-## tieni occupato x core
-taskset -c $core_id stress --cpu 1 --timeout 10 2>&1 > /dev/null &
-CMD_LINE="$*"
-bash -c "docker run --cpuset-cpus=$core_id $CMD_LINE " 
