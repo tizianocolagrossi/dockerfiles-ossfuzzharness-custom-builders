@@ -32,7 +32,12 @@ apt-get update && apt-get install -y \
     curl \
     build-essential \
     make \
+    gdb \
+    libinih-dev \
     zip --no-install-recommends
+
+apt install -y gnupg lsb-release software-properties-common build-essential --no-install-recommends
+
 
 case $(uname -m) in
   x86_64)
