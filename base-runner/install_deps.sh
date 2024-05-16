@@ -29,6 +29,7 @@ apt-get update && apt-get install -y \
     rsync \
     unzip \
     wget \
+    libinih-dev \
     zip --no-install-recommends
 
 case $(uname -m) in
