@@ -79,7 +79,7 @@ for f in $SRC/seeds/general_evaluation/pdf/* ; do
 done
 
 for fuzzer in zxdoc pdfload JBIG2; do
-  zip -j $OUT/fuzz_"${fuzzer}_seed_corpus.zip $SRC/corpus/*
+  zip -j $OUT/fuzz_${fuzzer}_seed_corpus.zip $SRC/corpus/*
 done
 
 # Copy over options files
