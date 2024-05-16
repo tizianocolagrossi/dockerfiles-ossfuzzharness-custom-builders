@@ -1,6 +1,6 @@
 #! /bin/bash
 # ENUMETRIC_VERSION=$1
-LIBAFL_BRANCH=enumetric-tmp-branch
+LIBAFL_BRANCH=enumetric-tmp-branch-v11.2
 
 echo BUILDING ENUMETRIC WITH VERSION $ENUMETRIC_VERSION
 
