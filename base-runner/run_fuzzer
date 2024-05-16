@@ -168,9 +168,8 @@ echo $CMD_LINE
 # Unset OUT so the fuzz target can't rely on it.
 unset OUT
 
-bash -c "$CMD_LINE"
+bash -c "$CMD_LINE; echo zipping"
 
-pushd $FUZZ_OUT
-zip -r fuzz_out.zip *
+cd $FUZZ_OUT
+zip -r fuzz_out.zip ./*
 find . -not -name fuzz_out.zip -delete
-popd
