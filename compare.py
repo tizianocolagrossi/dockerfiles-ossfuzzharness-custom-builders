@@ -320,8 +320,8 @@ class keyvalue(argparse.Action):
 def main():
     opt = argparse.ArgumentParser(description="DESC", formatter_class=argparse.RawTextHelpFormatter)
     opt.add_argument('-i'  , action=keyvalue, help="-i <type> paths", required=True, nargs='+')
-    opt.add_argument('-n', 'sut name', required=True)
-    opt.add_argument('-x', 'extension', default='.jpg')
+    opt.add_argument('-n', help="SUT name", required=True)
+    opt.add_argument('-x', help="extension for output images", required=False, default='.jpg')
     args = opt.parse_args()
 
     inputs_dirs = args.i
@@ -353,11 +353,12 @@ def main():
 
     fuzzers_crashes_deduplicated = get_crash_dds(out_path_to_analyze)
 
-
-    plot_exec_corpus_obj(fuzzers_info, args.n, args.x)
-    plot_cov_data(fuzzers_code_coverage, args.n, args.x)
-    plot_enumap_data(fuzzers_enum_coverage, args.n, args.x)
-    plot_crashes(fuzzers_crashes_deduplicated, args.n, args.x )
+    name=args.n
+    ext=args.x
+    plot_exec_corpus_obj(fuzzers_info, name, ext)
+    plot_cov_data(fuzzers_code_coverage, name, ext)
+    plot_enumap_data(fuzzers_enum_coverage, name, ext)
+    plot_crashes(fuzzers_crashes_deduplicated, name, ext )
 
 
 
