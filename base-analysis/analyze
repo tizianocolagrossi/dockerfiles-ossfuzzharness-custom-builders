@@ -75,6 +75,5 @@ mv ../.*.metadata $CRASHES
 mv ../.*.lafl_lock $CRASHES
 
 cd $FUZZ_OUT
-cp fuzzer_stats.csv fuzzer_stats.csv.bk
 zip -r fuzz_out.zip ./queue ./crashes ./fuzzer_stats.csv
-mv ./fuzzer_stats.csv.bk ./fuzzer_stats.csv
+rm -r /queue ./crashes
