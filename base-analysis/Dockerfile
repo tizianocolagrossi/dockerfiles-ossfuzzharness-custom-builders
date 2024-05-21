@@ -22,6 +22,9 @@ RUN /install_deps.sh && rm /install_deps.sh
 ENV FUZZ_OUT=/fuzz_out
 RUN mkdir -p $FUZZ_OUT
 
+ENV DEDUP_BUILD=/dedup_build
+RUN mkdir -p $DEDUP_BUILD
+
 # Do this last to make developing these files easier/faster due to caching.
 COPY analyze \
     /usr/local/bin/
