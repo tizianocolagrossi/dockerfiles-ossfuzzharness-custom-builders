@@ -33,14 +33,26 @@ popd
 
 if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
 
-    #check for element in queue that will lock
-    for element in $QUEUE_TEST_CASE; do
-        timeout 5 $OUT/$FUZZER -o $FUZZ_OUT $element
-        if [ $? -eq 124 ] ; then
-            mkdir -p $FUZZ_OUT/timeout-queue/
-            mv $element $FUZZ_OUT/timeout-queue/
-        fi 
-    done
+    if [[ ! -f $FUZZ_OUT/queue-preanalysis ]] ; then
+
+        #check for element in queue that will lock
+        for element in $QUEUE_TEST_CASE; do
+            timeout 5 $OUT/$FUZZER -o $FUZZ_OUT $element
+            ret=$?
+            if [ $ret -eq 124 ] ; then
+                mkdir -p $FUZZ_OUT/timeout-queue/
+                mv $element $FUZZ_OUT/timeout-queue/
+            fi 
+
+            if [ $ret -ne 0 ] ; then
+                mkdir -p $FUZZ_OUT/crashes-queue/
+                mv $element $FUZZ_OUT/crashes-queue/
+            fi 
+        done
+
+    fi
+
+    touch $FUZZ_OUT/queue-preanalysis
 
     bash -c "$CMD_LINE_CCOV_ECOV"
 fi
