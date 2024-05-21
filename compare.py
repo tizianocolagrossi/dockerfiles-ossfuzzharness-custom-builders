@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from matplotlib.ticker import MaxNLocator
 from collections import defaultdict
 import matplotlib.pyplot as plt
 from rich import print
@@ -70,7 +71,6 @@ def get_enumap_dl(paths):
         dl[tag].append(hitted)
     return dl
 
-
 def plot_exec_corpus_obj(ddl, libname, ext):
     if ext[0] != '.':
         ext = '.'+ext
@@ -114,6 +114,18 @@ def plot_exec_corpus_obj(ddl, libname, ext):
     plt.suptitle(libname)
     plt.savefig(f"{libname}_exec_corpus_obj_in_time{ext}")
 
+def label_median_line(bp_data, ax):
+    for line in bp_data['medians']:
+        (x_l, y),(x_r, _) = line.get_xydata()
+        if not np.isnan(y): 
+            x_line_center = x_l + (x_r - x_l)/2
+            y_line_center = y  # Since it's a line and it's horisontal
+            # overlay the value:  on the line, from center to right
+            ax.text(x_line_center, y_line_center, # Position
+                    '%.1f' % y, # Value (3f = 3 decimal float)
+                    verticalalignment='center', # Centered vertically with line 
+                    fontsize=8, backgroundcolor="white")
+            
 def plot_cov_data(ddl, libname, ext):
     if ext[0] != '.':
         ext = '.'+ext
@@ -144,34 +156,39 @@ def plot_cov_data(ddl, libname, ext):
         labels.append(tag)
     
 
-    axs[0].boxplot(boxplot_data_br)
+    bp_data = axs[0].boxplot(boxplot_data_br)
+    label_median_line(bp_data, axs[0])
     axs[0].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[0].set(title='branches', ylabel='cov (%)')
     axs[0].grid(True)
 
-    axs[1].boxplot(boxplot_data_fn)
+    bp_data = axs[1].boxplot(boxplot_data_fn)
+    label_median_line(bp_data, axs[1])
     axs[1].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[1].set(title='functions', ylabel='cov (%)')
     axs[1].grid(True)
 
-    axs[2].boxplot(boxplot_data_in)
+    bp_data = axs[2].boxplot(boxplot_data_in)
+    label_median_line(bp_data, axs[2])
     axs[2].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[2].set(title='instantiations', ylabel='cov (%)')
     axs[2].grid(True)
 
-    axs[3].boxplot(boxplot_data_ln)
+    bp_data = axs[3].boxplot(boxplot_data_ln)
+    label_median_line(bp_data, axs[3])
     axs[3].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[3].set(title='lines', ylabel='cov (%)')
     axs[3].grid(True)
 
-    axs[4].boxplot(boxplot_data_re)
+    bp_data = axs[4].boxplot(boxplot_data_re)
+    label_median_line(bp_data, axs[4])
     axs[4].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[4].set(title='regions', ylabel='cov (%)')
     axs[4].grid(True)
 
     plt.suptitle(libname)
     plt.savefig(f"{libname}_cov_report{ext}")
-        
+                
 def plot_enumap_data(dl, libname, ext):
     if ext[0] != '.':
         ext = '.'+ext
@@ -185,10 +202,12 @@ def plot_enumap_data(dl, libname, ext):
         labels.append(tag)
         boxplot_data.append(dl[tag])
     
-    ax.boxplot(boxplot_data)
+    bp_data = ax.boxplot(boxplot_data)
+    label_median_line(bp_data, ax)
     ax.set_xticklabels(labels,rotation=45, fontsize=8)
-    ax.set(title='branches', ylabel='enum cov (%)')
+    ax.set(title='enumap', ylabel='enumap entries covered')
     ax.grid(True)
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
   
     plt.suptitle(libname)
@@ -225,15 +244,21 @@ def plot_crashes(dds, libname, ext):
         boxplot_data_first_5.append(tmp_fisrt_5)
         labels.append(tag)
     
-    axs[0].boxplot(boxplot_data_first_1)
+    bp_data = axs[0].boxplot(boxplot_data_first_1)
+    label_median_line(bp_data, axs[0])
+                
     axs[0].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[0].set(title='afltriage first frame', ylabel='crashes')
     axs[0].grid(True)
+    axs[0].yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    axs[1].boxplot(boxplot_data_first_5)
+    bp_data = axs[1].boxplot(boxplot_data_first_5)
+    label_median_line(bp_data, axs[1])
     axs[1].set_xticklabels(labels,rotation=45, fontsize=8)
     axs[1].set(title='afltriage first 5 frames', ylabel='crashes')
     axs[1].grid(True)
+    axs[1].yaxis.set_major_locator(MaxNLocator(integer=True))
+
 
 
     boxplot_data_first_1_all = []
@@ -271,7 +296,8 @@ def plot_crashes(dds, libname, ext):
         axs[2].bar_label(rects, padding=3)
         multiplier += 1
     
-  
+    axs[2].yaxis.set_major_locator(MaxNLocator(integer=True))
+    axs[2].margins(y=0.2)
     axs[2].set_xticks(x + width, labels, rotation=45)
     axs[2].legend()
 
