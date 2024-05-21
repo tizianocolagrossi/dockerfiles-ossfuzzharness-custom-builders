@@ -25,4 +25,4 @@ if [ $FUZZER_DEDUP -ne $FUZZER ] ; then
   exit 1
 fi
 
-docker run -it --rm -v $FUZZ_OUT:/fuzz_out $DEDUP_BUILD:/dedup_build -v $ANALYSIS_BUILD:/out -e FUZZING_ENGINE=libafl -t oss-base-analysis analyze $FUZZER
+docker run -it --rm -v $FUZZ_OUT:/fuzz_out -v $DEDUP_BUILD:/dedup_build -v $ANALYSIS_BUILD:/out -e FUZZING_ENGINE=libafl -t oss-base-analysis analyze $FUZZER
