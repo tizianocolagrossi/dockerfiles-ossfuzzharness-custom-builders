@@ -24,5 +24,6 @@ for type in analysis baseline enumetric enumetric++ ; do
         continue
     fi
     mkdir -p $build_dir
+    #docker run -it --rm -v $build_dir:/out -t fuzzbuild/$project_name /bin/bash
     docker run -it --rm -v $build_dir:/out -t fuzzbuild/$project_name $cmd
 done 
