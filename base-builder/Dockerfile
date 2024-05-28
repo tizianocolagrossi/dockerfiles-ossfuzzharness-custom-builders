@@ -127,6 +127,7 @@ COPY compile \
     compile_baseline \
     compile_enumetric \
     compile_enumetric++ \
+    compile_enumetricbb++ \
     targets_list \
     /usr/local/bin/
 
