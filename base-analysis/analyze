@@ -28,7 +28,6 @@ CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_fr
 
 pushd $FUZZ_OUT
 unzip  fuzz_out.zip
-rm fuzz_out.zip
 popd
 
 if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
@@ -75,5 +74,5 @@ mv ../.*.metadata $CRASHES
 mv ../.*.lafl_lock $CRASHES
 
 cd $FUZZ_OUT
-zip -r fuzz_out.zip ./queue ./crashes ./fuzzer_stats.csv
-rm -r /queue ./crashes
+rm -r ./queue 
+rm -r ./crashes
