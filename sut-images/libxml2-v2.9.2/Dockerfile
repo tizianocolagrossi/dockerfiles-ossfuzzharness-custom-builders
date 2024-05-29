@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp1
+FROM base-builder:v0.2.6tmp2
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \

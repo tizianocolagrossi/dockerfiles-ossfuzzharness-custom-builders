@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp1
+FROM base-builder:v0.2.6tmp2
 RUN apt-get update && apt-get install -y cmake ninja-build g++ libz-dev
 RUN git clone --depth 1 https://github.com/google/bloaty.git bloaty
 WORKDIR bloaty

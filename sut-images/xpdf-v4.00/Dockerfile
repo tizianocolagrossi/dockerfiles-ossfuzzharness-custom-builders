@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp1
+FROM base-builder:v0.2.6tmp2
 RUN git clone --depth 1 https://gitlab.freedesktop.org/freetype/freetype
 RUN apt-get update
 RUN apt-get install --no-install-recommends -y make wget cmake qtbase5-dev libcups2-dev autoconf automake autotools-dev libtool
