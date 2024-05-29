@@ -122,12 +122,21 @@ ENV FUZZER_LDFLAGS ""
 
 WORKDIR $SRC
 
+RUN git clone https://github.com/AFLplusplus/AFLplusplus.git aflplusplus && \
+    cd aflplusplus && \
+    git checkout 1d17210 
+
+# Do precompiles before copying other scripts for better cache efficiency.
+COPY precompile_aflpp /usr/local/bin/
+RUN precompile_aflpp
+
 COPY compile \
     compile_analysis \
     compile_baseline \
     compile_enumetric \
     compile_enumetric++ \
     compile_enumetricbb++ \
+    compile_aflpp \
     targets_list \
     /usr/local/bin/
 

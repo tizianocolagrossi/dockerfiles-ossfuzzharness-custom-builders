@@ -28,6 +28,7 @@ apt-get update && \
     apt-get install -y \
         binutils-dev \
         build-essential \
+        llvm-13-dev \
         curl \
         wget \
         git \
@@ -35,6 +36,17 @@ apt-get update && \
         patchelf \
         rsync \
         subversion \
+        python3-dev \
+        automake \
+        cmake \
+        automake \
+        flex \
+        bison \
+        libglib2.0-dev \
+        libpixman-1-dev \
+        python3-setuptools \
+        cargo \
+        libgtk-3-dev \
         zip
 
 case $(uname -m) in
