@@ -22,7 +22,7 @@ git checkout tags/v0.26
 
 git apply $SRC/exiv2-v0.26.diff
 
-CXXFLAGS="--libafl -O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+CXXFLAGS="${CXXFLAGS} -O1 -lpthread -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
 
 # Added to fix a false positive result: https://github.com/google/oss-fuzz/issues/6489
 CXXFLAGS="${CXXFLAGS} -fno-sanitize=float-divide-by-zero"
@@ -37,7 +37,7 @@ make -j $(nproc)
 mkdir fuzz
 cd fuzz
 
-$CXX $SRC/fuzz-read-print-write.cpp -lexiv2 -lz -lexpat -linih -lbrotlienc -lbrotlidec -lbrotlicommon -lxmp --libafl -L../src -L../xmpsdk -I ../ -I ../../include/ -o $OUT/fuzz-read-print-write
+$CXX $SRC/fuzz-read-print-write.cpp $CXXFLAGS -lexiv2 -lpthread -lz -lexpat -linih -lbrotlienc -lbrotlidec -lbrotlicommon -lxmp -L../src -L../xmpsdk -I ../ -I ../../include/ -o $OUT/fuzz-read-print-write
 
 
 # Copy binary and dictionary to $OUT

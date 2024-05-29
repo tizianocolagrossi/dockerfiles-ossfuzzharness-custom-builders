@@ -33,7 +33,7 @@ cd BUILD
  make -j$(nproc)
 
 set -x
-$CXX $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/libxml2/BUILD/.libs/libxml2.a -lz -llzma --libafl -o $OUT/xml
+$CXX $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/libxml2/BUILD/.libs/libxml2.a -lz -llzma -o $OUT/xml
 
 mkdir $SRC/corpus
 echo "hi" > $SRC/corpus/seed
