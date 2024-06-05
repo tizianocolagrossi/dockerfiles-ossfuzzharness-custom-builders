@@ -100,7 +100,8 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   export AFL_FORKSRV_INIT_TMOUT=30000
   export AFL_IGNORE_PROBLEMS=1
   export AFL_IGNORE_UNKNOWN_ENVS=1
-
+ 
+  AFL_FUZZER_ARGS=""
   # If $OUT/afl_cmplog.txt is present this means the target was compiled for
   # CMPLOG. So we have to add the proper parameters to afl-fuzz.
   test -e "$OUT/afl_cmplog.txt" && AFL_FUZZER_ARGS="$AFL_FUZZER_ARGS -c $OUT/$FUZZER"
@@ -115,7 +116,7 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   # AFL expects at least 1 file in the input dir.
   echo input > ${CORPUS_DIR}/input
 
-  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
+  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS  -b $CORE -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
 
   echo afl++ setup:
   env|grep AFL_
