@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+from rich.progress import track
+from rich.spinner import Spinner
+
+import statistics
+
 from matplotlib.ticker import MaxNLocator
 from collections import defaultdict
 import matplotlib.pyplot as plt
@@ -13,7 +18,7 @@ import os
 def get_fuzzinfo_ddl(paths):
     ddl = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     counter = 0
-    for tag, path in paths:
+    for tag, path in track(paths, "Getting fuzz info..."):
         counter += 1
         with open(path) as fd:
             lines = fd.readlines()
@@ -37,7 +42,7 @@ def get_total_amounts_llvm_cov(json_path):
 def get_cov_ddl(paths):
     ddl = defaultdict(dict)
     counter=0
-    for tag, json_path in paths:
+    for tag, json_path in track(paths, "Getting cov data..."):
         counter += 1
         di = get_total_amounts_llvm_cov(json_path)
         ddl[tag][counter]=di
@@ -46,7 +51,7 @@ def get_cov_ddl(paths):
 def get_crash_dds(paths):
     dds = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
     counter = 0
-    for tag, path_out in paths:
+    for tag, path_out in track(paths, "Getting crashes info..."):
         counter += 1
         afltriage_5f_dir = os.path.join(path_out, 'afltriageout-first_5_frames')
         afltriage_1f_dir = os.path.join(path_out, 'afltriageout-first_frame')
@@ -59,7 +64,7 @@ def get_crash_dds(paths):
 def get_enumap_dl(paths):
 
     dl = defaultdict(list)
-    for tag, path_mapdump in paths:
+    for tag, path_mapdump in track(paths, "Getting enumeration map info..."):
         with open(os.path.join(path_mapdump), 'rb') as fd:
             data = fd.read()
             data_array = np.frombuffer(data, dtype=np.uint8)
@@ -84,17 +89,45 @@ def plot_exec_corpus_obj(ddl, libname, ext):
 
     for tag in ddl:
         with_label = True
+
+        # get median run
+        tmp_execs_finals = []
+        tmp_corpus_finals = []
+        tmp_objects_finals = []
+
         for run in ddl[tag]:
-            color = colors[tags.index(tag)]
-            if with_label:
-                with_label=False
-                axs[0].plot(ddl[tag][run]['time'], ddl[tag][run]['exec_s'], c=color, label=tag)    
-                axs[1].plot(ddl[tag][run]['time'], ddl[tag][run]['corpus'], c=color, label=tag)    
-                axs[2].plot(ddl[tag][run]['time'], ddl[tag][run]['objectives'], c=color, label=tag)    
-            else:
-                axs[0].plot(ddl[tag][run]['time'], ddl[tag][run]['exec_s'], c=color)
-                axs[1].plot(ddl[tag][run]['time'], ddl[tag][run]['corpus'], c=color)
-                axs[2].plot(ddl[tag][run]['time'], ddl[tag][run]['objectives'], c=color)
+            tmp_execs_finals.append( (ddl[tag][run]['exec_s'][-1],run) )
+            tmp_corpus_finals.append( (ddl[tag][run]['corpus'][-1],run) )
+            tmp_objects_finals.append( (ddl[tag][run]['objectives'][-1],run) )
+
+            tmp_execs_finals.sort()
+            tmp_corpus_finals.sort()
+            tmp_objects_finals.sort()
+
+        # print('tmp_execs_finals', tmp_execs_finals,  tmp_execs_finals[1][1])
+        # print('tmp_corpus_finals',tmp_corpus_finals,tmp_corpus_finals[1][1])
+        # print('tmp_objects_finals',tmp_objects_finals,tmp_objects_finals[1][1])
+
+        run_execs_median = tmp_execs_finals[1][1]
+        run_corpus_median = tmp_corpus_finals[1][1]
+        run_objects_median = tmp_objects_finals[1][1]
+
+        color = colors[tags.index(tag)]
+        axs[0].plot(ddl[tag][run_execs_median]['time'], ddl[tag][run_execs_median]['exec_s'], c=color, label=tag)    
+        axs[1].plot(ddl[tag][run_corpus_median]['time'], ddl[tag][run_corpus_median]['corpus'], c=color, label=tag)    
+        axs[2].plot(ddl[tag][run_objects_median]['time'], ddl[tag][run_objects_median]['objectives'], c=color, label=tag)    
+
+        # for run in ddl[tag]:
+        #     color = colors[tags.index(tag)]
+        #     if with_label:
+        #         with_label=False
+        #         axs[0].plot(ddl[tag][run]['time'], ddl[tag][run]['exec_s'], c=color, label=tag)    
+        #         axs[1].plot(ddl[tag][run]['time'], ddl[tag][run]['corpus'], c=color, label=tag)    
+        #         axs[2].plot(ddl[tag][run]['time'], ddl[tag][run]['objectives'], c=color, label=tag)    
+        #     else:
+        #         axs[0].plot(ddl[tag][run]['time'], ddl[tag][run]['exec_s'], c=color)
+        #         axs[1].plot(ddl[tag][run]['time'], ddl[tag][run]['corpus'], c=color)
+        #         axs[2].plot(ddl[tag][run]['time'], ddl[tag][run]['objectives'], c=color)
 
     axs[0].set_xlabel('Time (s)')
     axs[0].set_ylabel('exec_s')
@@ -365,4 +398,10 @@ def main():
 if __name__ == "__main__":
     main()
 
-#/home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -i baseline pdfload-xpdf-v4.00_baseline-1/ pdfload-xpdf-v4.00_baseline-2/ pdfload-xpdf-v4.00_baseline-3/ -i baseline-cmplog pdfload-xpdf-v4.00_baseline-cmplog-* -i enumetric pdfload-xpdf-v4.00_enumetric-1/ pdfload-xpdf-v4.00_enumetric-2/ pdfload-xpdf-v4.00_enumetric-3/ -i enumetric-cmplog pdfload-xpdf-v4.00_enumetric-cmplog-* -i enumetric++ pdfload-xpdf-v4.00_enumetric++-1/ pdfload-xpdf-v4.00_enumetric++-2/ pdfload-xpdf-v4.00_enumetric++-3/ -i enumetric++-cmplog pdfload-xpdf-v4.00_enumetric++-cmplog-* 
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -i baseline -i baseline-cmplog -i enumetric -i enumetric-cmplog -i enumetric++ -i enumetric++-cmplog -i enumetricbb++ -i enumetricbb++
+
+
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n xpdf-4.00         -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n exiv2-0.26        -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline-*               -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline_cmplog-*             -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric-*             -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric_cmplog-*             -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++-*             -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++_cmplog-*             -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/exiv2-v0.26/exiv2-v0.26_enumetricbb++-*             -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/exiv2-v0.26/exiv2-v0.26_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n bloaty-2020-05-25 -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline-*   -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline_cmplog-* -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric-* -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric_cmplog-* -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++-* -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++_cmplog-* -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++-* -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n jsoncpp-v1.9.5    -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++_cmplog-*
