@@ -65,6 +65,7 @@ export CFLAGS="--libafl $CFLAGS $SANITIZER_FLAGS $COVERAGE_FLAGS"
 export CXXFLAGS="--libafl $CFLAGS $CXXFLAGS_EXTRA"
 
 export ACOV=1
+export TRANS_TYPE_CTX_BB=1
 
 export CC="enumetricmm_cc"
 export CXX="enumetricmm_cxx"
