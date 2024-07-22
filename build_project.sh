@@ -14,7 +14,7 @@ echo $project_name
 
 docker build -t fuzzbuild/$project_name $project_path/
 
-for type in analysis baseline enumetric enumetric++ ; do
+for type in  analysis ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp
     cmd=compile_$type
     echo $type
     echo $cmd

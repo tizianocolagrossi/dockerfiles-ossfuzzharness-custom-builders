@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp2
+FROM base-builder:v0.2.6tmp3-lafl0.12
 RUN apt-get update -y && apt-get install -y curl wget \
     binutils cmake ninja-build liblzma-dev libz-dev pkg-config autoconf libtool
 RUN git clone --depth 1 https://github.com/open-source-parsers/jsoncpp

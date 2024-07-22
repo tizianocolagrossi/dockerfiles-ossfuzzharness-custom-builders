@@ -18,10 +18,19 @@
 
 # taken at ossfuzz commit 0990a14
 
+CFLAGS="-ldbus-1 $CFLAGS"
+CXXFLAGS="-ldbus-1 $CXXFLAGS"
+
 pushd $SRC/PcapPlusPlus
 git fetch --all -pP
 git checkout a817631
 popd
+
+pushd $SRC/libpcap
+
+popd
+
+pkg-config --libs --cflags dbus-1
 
 # Build libpcap
 cd $SRC/libpcap/
@@ -33,7 +42,7 @@ make -j$(nproc)
 cd $SRC/PcapPlusPlus
 ./configure-fuzzing.sh --libpcap-static-lib-dir $SRC/libpcap/
 make clean
-make -j$(nproc) fuzzers
+make fuzzers -j$(nproc) 
 
 # Copy target and options
 cp $SRC/PcapPlusPlus/Tests/Fuzzers/Bin/FuzzTarget $OUT

@@ -17,6 +17,8 @@ perform_task() {
     shift
     runs=$1
     shift
+    cor_start=$1
+    shift
     timeout=$1
     shift
     min_start=$1
@@ -34,43 +36,79 @@ perform_task() {
     fi
     # Loop from core_start to core_end
     for counter in $(seq 1 ${runs}); do
-        # minutes=$(($counter+$min_start))
-        minutes=$min_start
+        minutes=$(($counter+$min_start-1))
+        core_id=$(($counter+$cor_start-1))
         if [ $DUMMY == 1 ] ; then
-            #real
-            echo "docker-run-cpu-affinity -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"
+            #dummy
+            echo "docker run --cpuset-cpus=$core_id --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"
         else
             #real
-            echo "docker-run-cpu-affinity -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+            echo "docker run --cpuset-cpus=$core_id --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
         fi
     done
 }
 
-#             fuzzer       fuzz_dir                          out_dir_prefx                                run timeout  min_start additional_options
-#perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   5m       1         -c
 
-# # xpdf-4.00 cmplog baseline
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 3 24h 0 -c
-# # xpdf-4.00 baseline
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline 3 24h 3
-# # xpdf-4.00 enumetric cmplog
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric-cmplog 3 24h 6 -c
-# # xpdf-4.00 enumetric
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric 3 24h 1455
-# # xpdf-4.00 enumetric cmplog
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++-cmplog 3 24h 1458 -c
-# # xpdf-4.00 enumetric
-# perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++ 3 24h 1461
+convert_to_minutes() {
+    local time_str="$1"
+    
+    # Extract numeric part and unit
+    local num="${time_str//[!0-9]/}"
+    local unit="${time_str//[0-9]/}"
 
-# xpdf-4.00 cmplog baseline
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 1 10m 0 -c
-# xpdf-4.00 baseline
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline 1 10m 0
-# xpdf-4.00 enumetric cmplog
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric-cmplog 1 10m 0 -c
-# xpdf-4.00 enumetric
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/enumetric/ ~/outputs/pdfload-xpdf-v4.00_enumetric 1 10m 0
-# xpdf-4.00 enumetric cmplog
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++-cmplog 1 10m 0 -c
-# xpdf-4.00 enumetric
-perform_task fuzz_pdfload ~/sut-docker/v0.2.6tmp0/xpdf-v4.00/enumetric++/ ~/outputs/pdfload-xpdf-v4.00_enumetric++ 1 10m 0
+    # Convert num to an integer
+    num=$((num))
+
+    # Calculate minutes based on the unit
+    case "$unit" in
+        "h") minutes=$((num * 60)) ;;
+        "m") minutes=$((num)) ;;
+        "s") minutes=$((num / 60)) ;;
+        *) echo "Invalid unit"; return 1 ;;
+    esac
+
+    echo "$minutes"
+}
+
+TIMEOUT="24h"
+DELTA="15"
+RUN="3"
+
+TIME_UNIT=$(convert_to_minutes $TIMEOUT)
+TIME_UNIT=$(($TIME_UNIT+$DELTA))
+
+# #             fuzzer       fuzz_dir                          out_dir_prefx                                run timeout  min_start additional_options
+# #perform_task fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   5m       1         -c
+
+ROUND_TIME=$((TIME_UNIT * 0))
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline $RUN 3 $TIMEOUT $ROUND_TIME 
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+
+
+ROUND_TIME=$((TIME_UNIT * 1))
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric $RUN 0 $TIMEOUT $ROUND_TIME 
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++ $RUN 6 $TIMEOUT $ROUND_TIME 
+
+
+ROUND_TIME=$((TIME_UNIT * 2))
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
+perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++ $RUN 3 $TIMEOUT $ROUND_TIME 
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+
+
+ROUND_TIME=$((TIME_UNIT * 3))
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline $RUN 0 $TIMEOUT $ROUND_TIME 
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric $RUN 6 $TIMEOUT $ROUND_TIME 
+
+
+ROUND_TIME=$((TIME_UNIT * 4))
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++ $RUN 3 $TIMEOUT $ROUND_TIME 
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+
+
+ROUND_TIME=$((TIME_UNIT * 5))
+perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++ $RUN 0 $TIMEOUT $ROUND_TIME 

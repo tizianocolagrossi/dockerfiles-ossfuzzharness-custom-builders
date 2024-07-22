@@ -11,7 +11,7 @@ for project in ./sut-images/* ; do
 
     docker build -t fuzzbuild/$project_name $project_path/
 
-    for type in analysis baseline enumetric enumetric++ ; do
+    for type in  analysis enumetricbb++ ; do # analysis baseline enumetric enumetric++ enumetricbb++
         cmd=compile_$type
         echo $type
         echo $cmd

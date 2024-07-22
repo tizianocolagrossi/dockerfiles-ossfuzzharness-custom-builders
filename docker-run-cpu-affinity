@@ -13,7 +13,7 @@ flock 3 #lock file by filedescriptor
 # echo $$ working with lock
 core_id=$(afl-gotcpu | grep AVAILABLE | tr -s " " | cut -d " " -f 3 | tr -d "#" | tr -d ":" | sort -h | head -n 1)
 CMD_LINE="$*"
-bash -c "docker run --cpuset-cpus=$core_id --detach --rm $CMD_LINE " 
+bash -c "docker run --cpuset-cpus=$core_id --detach --rm -e CORE=$core_id $CMD_LINE " # --detach
 # echo $$ done with lock
 
 } 3</var/lock/gotcpulock

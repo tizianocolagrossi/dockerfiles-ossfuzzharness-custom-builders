@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2020 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
 # limitations under the License.
 #
 ################################################################################
+
 FROM base-builder:v0.2.6tmp3-lafl0.12
 
-RUN git clone https://github.com/Exiv2/exiv2 exiv2
-RUN ./exiv2/ci/install_dependencies.sh
-WORKDIR exiv2
-RUN git fetch --all -pP 
-RUN git checkout tags/v0.26
+RUN apt-get update && apt-get install -y cmake autoconf flex bison
+RUN git clone --depth=1 https://github.com/seladb/PcapPlusPlus PcapPlusPlus
 
-COPY build.sh exiv2-v0.26.diff $SRC/
+# Get tcpdump's test pcaps as seed corpus
+RUN git clone --depth=1 https://github.com/the-tcpdump-group/tcpdump.git tcpdump
+RUN git clone --depth=1 https://github.com/the-tcpdump-group/libpcap.git libpcap
+
+WORKDIR PcapPlusPlus
+
+COPY build.sh $SRC

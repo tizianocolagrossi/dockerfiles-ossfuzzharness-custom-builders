@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2020 Google Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,15 @@
 # limitations under the License.
 #
 ################################################################################
+
 FROM base-builder:v0.2.6tmp3-lafl0.12
+RUN git clone --depth 1 https://gitlab.freedesktop.org/freetype/freetype
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y make wget cmake qtbase5-dev libcups2-dev autoconf automake autotools-dev libtool
+RUN wget https://dl.xpdfreader.com/old/xpdf-4.03.tar.gz
 
-RUN git clone https://github.com/Exiv2/exiv2 exiv2
-RUN ./exiv2/ci/install_dependencies.sh
-WORKDIR exiv2
-RUN git fetch --all -pP 
-RUN git checkout tags/v0.26
-
-COPY build.sh exiv2-v0.26.diff $SRC/
+WORKDIR $SRC
+COPY fuzz_*.cc $SRC/
+COPY build.sh $SRC/
+COPY fuzz_*.options $SRC/
+COPY CMakeLists.txt.xpdf $SRC/

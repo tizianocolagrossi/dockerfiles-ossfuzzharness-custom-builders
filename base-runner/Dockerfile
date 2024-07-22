@@ -27,6 +27,8 @@ FROM oss-base-clang AS base-clang
 # Real image that will be used later.
 FROM oss-base-image
 
+#RUN sudo sysctl -w kernel.core_pattern="core"
+
 COPY --from=temp-runner-binary-builder /root/.cargo/bin/rustfilt /usr/local/bin
 
 # Copy the binaries needed for code coverage and crash symbolization.

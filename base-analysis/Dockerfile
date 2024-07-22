@@ -15,6 +15,8 @@
 ################################################################################
 FROM oss-base-image
 
+#RUN sudo sysctl -w kernel.core_pattern="core"
+
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
 

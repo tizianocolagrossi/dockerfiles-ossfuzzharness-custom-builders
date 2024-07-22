@@ -31,6 +31,9 @@ RUN --mount=type=ssh \
 RUN --mount=type=ssh \
   git clone git@github.com:tizianocolagrossi/LibAFL.git /src/LibAFL 
 
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/LibAFL-0.12.0-Enumetric.git /src/LibAFL-0.12.0-Enumetric 
+
 COPY checkout_build_enumetric.sh /root/
 # # Keep all steps in the same script to decrease the number of intermediate
 # # layes in docker file.

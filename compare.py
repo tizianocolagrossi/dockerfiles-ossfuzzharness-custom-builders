@@ -1,19 +1,110 @@
 #!/usr/bin/env python3
 
-from rich.progress import track
+from rich.console import Console
 from rich.spinner import Spinner
+from rich.progress import track
+from rich.table import Table
 
 import statistics
 
+from scipy.stats import mannwhitneyu, wasserstein_distance
 from matplotlib.ticker import MaxNLocator
 from collections import defaultdict
 import matplotlib.pyplot as plt
+from bisect import bisect_left
+from pandas import Categorical
+import scipy.stats as ss
+from typing import List
 from rich import print
+import itertools as it
+import pandas as pd
 import numpy as np
 import argparse
 import json
 import sys
 import os
+
+
+
+def VD_A(treatment: List[float], control: List[float]):
+    """
+    Computes Vargha and Delaney A index
+    A. Vargha and H. D. Delaney.
+    A critique and improvement of the CL common language
+    effect size statistics of McGraw and Wong.
+    Journal of Educational and Behavioral Statistics, 25(2):101-132, 2000
+    The formula to compute A has been transformed to minimize accuracy errors
+    See: http://mtorchiano.wordpress.com/2014/05/19/effect-size-of-r-precision/
+    :param treatment: a numeric list
+    :param control: another numeric list
+    :returns the value estimate and the magnitude
+    """
+    m = len(treatment)
+    n = len(control)
+
+    if m != n:
+        raise ValueError("Data d and f must have the same length")
+
+    r = ss.rankdata(treatment + control)
+    r1 = sum(r[0:m])
+
+    # Compute the measure
+    # A = (r1/m - (m+1)/2)/n # formula (14) in Vargha and Delaney, 2000
+    A = (2 * r1 - m * (m + 1)) / (2 * n * m)  # equivalent formula to avoid accuracy errors
+
+    levels = [0.147, 0.33, 0.474]  # effect sizes from Hess and Kromrey, 2004
+    magnitude = ["negligible", "small", "medium", "large"]
+    scaled_A = (A - 0.5) * 2
+
+    magnitude = magnitude[bisect_left(levels, abs(scaled_A))]
+    estimate = A
+
+    return estimate, magnitude
+
+
+def VD_A_DF(data, val_col: str = None, group_col: str = None, sort=True):
+    """
+    :param data: pandas DataFrame object
+        An array, any object exposing the array interface or a pandas DataFrame.
+        Array must be two-dimensional. Second dimension may vary,
+        i.e. groups may have different lengths.
+    :param val_col: str, optional
+        Must be specified if `a` is a pandas DataFrame object.
+        Name of the column that contains values.
+    :param group_col: str, optional
+        Must be specified if `a` is a pandas DataFrame object.
+        Name of the column that contains group names.
+    :param sort : bool, optional
+        Specifies whether to sort DataFrame by group_col or not. Recommended
+        unless you sort your data manually.
+    :return: stats : pandas DataFrame of effect sizes
+    Stats summary ::
+    'A' : Name of first measurement
+    'B' : Name of second measurement
+    'estimate' : effect sizes
+    'magnitude' : magnitude
+    """
+
+    x = data.copy()
+    if sort:
+        x[group_col] = Categorical(x[group_col], categories=x[group_col].unique(), ordered=True)
+        x.sort_values(by=[group_col, val_col], ascending=True, inplace=True)
+
+    groups = x[group_col].unique()
+
+    # Pairwise combinations
+    g1, g2 = np.array(list(it.combinations(np.arange(groups.size), 2))).T
+
+    # Compute effect size for each combination
+    ef = np.array([VD_A(list(x[val_col][x[group_col] == groups[i]].values),
+                        list(x[val_col][x[group_col] == groups[j]].values)) for i, j in zip(g1, g2)])
+
+    return pd.DataFrame({
+        'A': np.unique(data[group_col])[g1],
+        'B': np.unique(data[group_col])[g2],
+        'estimate': ef[:, 0],
+        'magnitude': ef[:, 1]
+    })
 
 def get_fuzzinfo_ddl(paths):
     ddl = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -341,6 +432,12 @@ def plot_crashes(dds, libname, ext):
 
 # usage compare.py pdfload-xpdf-v4.00_*
 
+def get_stats_values(baseline, compared):
+    _, p = mannwhitneyu(baseline, compared, method="exact")
+    w_1  = wasserstein_distance(baseline, compared)
+    a_12_v, a_12_l = VD_A(baseline, compared)
+    return p, a_12_v, a_12_l, w_1
+
 # create a keyvalue class 
 class keyvalue(argparse.Action): 
     def __call__( self , parser, namespace, 
@@ -393,6 +490,140 @@ def main():
     plot_enumap_data(fuzzers_enum_coverage, name, ext)
     plot_crashes(fuzzers_crashes_deduplicated, name, ext )
 
+    ddata = defaultdict(lambda: defaultdict(list))
+    tags = list(fuzzers_code_coverage.keys())
+    tags.sort()
+
+    for tag in fuzzers_code_coverage:
+        for run in fuzzers_code_coverage[tag]:
+            for type in fuzzers_code_coverage[tag][run]:
+                ddata[tag][type].append(fuzzers_code_coverage[tag][run][type])
+    
+    boxplot_data_br = defaultdict(list)
+    boxplot_data_fn = defaultdict(list)
+    boxplot_data_in = defaultdict(list)
+    boxplot_data_ln = defaultdict(list)
+    boxplot_data_re = defaultdict(list)
+    labels = []
+    for tag in tags:
+        boxplot_data_br[tag].append(ddata[tag]['branches'])
+        boxplot_data_fn[tag].append(ddata[tag]['functions'])
+        boxplot_data_in[tag].append(ddata[tag]['instantiations'])
+        boxplot_data_ln[tag].append(ddata[tag]['lines'])
+        boxplot_data_re[tag].append(ddata[tag]['regions'])
+        labels.append(tag)
+
+    ddata = defaultdict(lambda: defaultdict(list))
+    tags = list(fuzzers_crashes_deduplicated.keys())
+    tags.sort()
+
+    for tag in fuzzers_crashes_deduplicated:
+        for run in fuzzers_crashes_deduplicated[tag]:
+            for type in fuzzers_crashes_deduplicated[tag][run]:
+                ddata[tag][type].append(fuzzers_crashes_deduplicated[tag][run][type])
+
+    boxplot_data_first_1 = defaultdict(list)
+    boxplot_data_first_5 = defaultdict(list)
+
+    labels = []
+    for tag in tags:
+        for crashes in ddata[tag]['first-frame']:
+            boxplot_data_first_1[tag].append(len(crashes))
+        for crashes in ddata[tag]['first-5-frames']: 
+            boxplot_data_first_5[tag].append(len(crashes))
+        labels.append(tag)
+    print(boxplot_data_first_1)
+    table = Table(title="Comp p-value mannwhitneyu")
+    tableva = Table(title="Comp a_12 vargha delaney")
+    tablewd = Table(title="Comp wasserstein_distance")
+
+    kkk = list(fuzzers_enum_coverage.keys())
+    kkk.sort()
+    rm = []
+    for k in kkk:
+        if 'baseline' in k:
+            rm.append(k)
+    for k in rm:
+        kkk.remove(k)
+    table.add_column('baseline', justify="center", no_wrap=True)
+    tableva.add_column('baseline', justify="center", no_wrap=True)
+    tablewd.add_column('baseline', justify="center", no_wrap=True)
+    for k in kkk:
+        table.add_column(k, justify="center", no_wrap=True)
+        tableva.add_column(k, justify="center", no_wrap=True)
+        tablewd.add_column(k, justify="center", no_wrap=True)
+    labels = ['enum cov', 'crashes (1)','br cov','ln cov','fn cov']
+    data = defaultdict(list)
+    for baseline in fuzzers_enum_coverage:
+        row = [None]*(len(kkk)+1)
+        row[0] = k
+        rowva = [None]*(len(kkk)+1)
+        rowva[0] = k
+        rowwd = [None]*(len(kkk)+1)
+        rowwd[0] = k
+   
+        if 'baseline' in baseline:
+            for compared in fuzzers_enum_coverage:
+                if baseline == compared:
+                    continue
+                if 'baseline' in compared:
+                    continue
+                
+                p, a_12_v, a_12_l, w_1 = get_stats_values(fuzzers_enum_coverage[baseline], fuzzers_enum_coverage[compared])
+                s = f'ce:{p},'
+                sva = f'ce:{a_12_l[0]},'
+                swd = f'ce:{w_1:.1f},'
+                data[f'{baseline} vs {compared}'].append(a_12_v)
+
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_1[baseline], boxplot_data_first_1[compared])
+                s = f'c1:{p},'
+                sva = f'c1:{a_12_l[0]},'
+                swd = f'c1:{w_1:.1f},'
+                data[f'{baseline} vs {compared}'].append(a_12_v)
+
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_5[baseline], boxplot_data_first_5[compared])
+                s = f'c5:{p},'
+                sva = f'c5:{a_12_l[0]},'
+                swd = f'c5:{w_1:.1f},'
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_br[baseline][0], boxplot_data_br[compared][0])
+                s = f'br:{p},'
+                sva = f'br:{a_12_l[0]},'
+                swd = f'br:{w_1:.1f},'
+                data[f'{baseline} vs {compared}'].append(a_12_v)
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_ln[baseline][0], boxplot_data_ln[compared][0])
+                s = f'ln:{p},'
+                sva = f'ln:{a_12_l[0]},'
+                swd = f'ln:{w_1:.1f},'
+                data[f'{baseline} vs {compared}'].append(a_12_v)
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_fn[baseline][0], boxplot_data_fn[compared][0])
+                s = f'fn:{p},'
+                sva = f'fn:{a_12_l[0]},'
+                swd = f'fn:{w_1:.1f},'
+                data[f'{baseline} vs {compared}'].append(a_12_v)
+
+                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_in[baseline][0], boxplot_data_in[compared][0])
+                s = f'in:{p},'
+                sva = f'in:{a_12_l[0]},'
+                swd = f'in:{w_1:.1f},'
+
+                row[kkk.index(compared)+1]=s
+                rowva[kkk.index(compared)+1]=sva
+                rowwd[kkk.index(compared)+1]=swd
+                
+
+
+            table.add_row(*row)
+            tableva.add_row(*rowva)
+            tablewd.add_row(*rowwd)
+    console = Console()
+    console.print(table)
+    console.print(tableva)
+    console.print(tablewd)
 
 
 if __name__ == "__main__":
@@ -401,7 +632,7 @@ if __name__ == "__main__":
 # /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -i baseline -i baseline-cmplog -i enumetric -i enumetric-cmplog -i enumetric++ -i enumetric++-cmplog -i enumetricbb++ -i enumetricbb++
 
 
-# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n xpdf-4.00         -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++_cmplog-*
-# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n exiv2-0.26        -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline-*               -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline_cmplog-*             -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric-*             -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric_cmplog-*             -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++-*             -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++_cmplog-*             -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/exiv2-v0.26/exiv2-v0.26_enumetricbb++-*             -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/exiv2-v0.26/exiv2-v0.26_enumetricbb++_cmplog-*
-# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n bloaty-2020-05-25 -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline-*   -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline_cmplog-* -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric-* -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric_cmplog-* -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++-* -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++_cmplog-* -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++-* -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++_cmplog-*
-# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n jsoncpp-v1.9.5    -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/new-strategy-\(trans-ctx-bb\)/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n xpdf-4.00         -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/xpdf-v4.00/pdfload-xpdf-v4.00_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n exiv2-0.26        -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline-*               -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_baseline_cmplog-*             -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric-*             -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric_cmplog-*             -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++-*             -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetric++_cmplog-*             -i enumetricbb++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetricbb++-*             -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/exiv2-v0.26/exiv2-v0.26_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n bloaty-2020-05-25 -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline-*   -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_baseline_cmplog-* -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric-* -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric_cmplog-* -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++-* -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetric++_cmplog-* -i enumetricbb++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++-* -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/bloaty-2020-05-25/bloaty-2020-05-25_enumetricbb++_cmplog-*
+# /home/tiziano/Documents/dockerfiles-ossfuzzharness-custom-builders/compare.py -n jsoncpp-v1.9.5    -i baseline /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline-*         -i baseline-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_baseline_cmplog-*       -i enumetric /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric-*       -i enumetric-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric_cmplog-*       -i enumetric++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++-*       -i enumetric++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetric++_cmplog-*       -i enumetricbb++ /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++-*       -i enumetricbb++-cmplog /home/tiziano/Documents/new-docker-run/enumetric-v0.2.6tmp0/jsoncpp-v1.9.5/jsoncpp-v1.9.5_enumetricbb++_cmplog-*

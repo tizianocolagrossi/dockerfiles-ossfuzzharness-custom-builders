@@ -30,8 +30,8 @@ pushd $FUZZ_OUT
 unzip  fuzz_out.zip
 popd
 
-if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
-
+if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]] || [[ ! -d $FUZZ_OUT/mapdump ]]; then
+    echo "INNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
     if [[ ! -f $FUZZ_OUT/queue-preanalysis ]] ; then
 
         #check for element in queue that will lock
@@ -50,7 +50,7 @@ if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_f
         done
 
     fi
-
+    ls /out/
     touch $FUZZ_OUT/queue-preanalysis
 
     bash -c "$CMD_LINE_CCOV_ECOV"
@@ -61,8 +61,8 @@ if [[ ! -s $FUZZ_OUT/llvmcov.json ]]; then
     bash -c "$CMD_CCOV_EXPORT"
 fi
 
-mv $CRASHES/.*.metadata /..
-mv $CRASHES/.*.lafl_lock /..
+rm $CRASHES.*.metadata 
+rm $CRASHES.*.lafl_lock 
 if [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]]; then
     bash -c "$CMD_LINE_DEDUP_CRASH_5"
 fi
@@ -70,8 +70,6 @@ fi
 if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
     bash -c "$CMD_LINE_DEDUP_CRASH_1"
 fi
-mv ../.*.metadata $CRASHES
-mv ../.*.lafl_lock $CRASHES
 
 cd $FUZZ_OUT
 rm -r ./queue 

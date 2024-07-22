@@ -14,15 +14,14 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp2
+FROM base-builder:v0.2.6tmp3-lafl0.12
+RUN git clone --depth 1 https://gitlab.freedesktop.org/freetype/freetype
+RUN apt-get update
+RUN apt-get install --no-install-recommends -y make wget cmake qtbase5-dev libcups2-dev autoconf automake autotools-dev libtool
+RUN wget https://dl.xpdfreader.com/old/xpdf-4.04.tar.gz
 
-RUN apt-get update && apt-get install -y cmake autoconf flex bison
-RUN git clone --depth=1 https://github.com/seladb/PcapPlusPlus PcapPlusPlus
-
-# Get tcpdump's test pcaps as seed corpus
-RUN git clone --depth=1 https://github.com/the-tcpdump-group/tcpdump.git tcpdump
-RUN git clone --depth=1 https://github.com/the-tcpdump-group/libpcap.git libpcap
-
-WORKDIR PcapPlusPlus
-
-COPY build.sh $SRC
+WORKDIR $SRC
+COPY fuzz_*.cc $SRC/
+COPY build.sh $SRC/
+COPY fuzz_*.options $SRC/
+COPY CMakeLists.txt.xpdf $SRC/
