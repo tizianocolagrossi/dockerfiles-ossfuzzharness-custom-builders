@@ -1,4 +1,4 @@
-FROM base-builder:v0.2.6tmp3-lafl0.12-lafl0.12
+FROM base-builder:v0.2.6tmp5-lafl0.12-lafl0.12
 RUN apt-get update && \
     apt-get install -y make autoconf automake libtool zlib1g-dev
 
