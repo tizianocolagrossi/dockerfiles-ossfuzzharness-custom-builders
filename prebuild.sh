@@ -11,7 +11,18 @@ fi
 docker build -t oss-base-image  ./base-image
 docker build -t oss-base-clang  ./base-clang
 docker build -t oss-base-runner ./base-runner
-docker build -t oss-base-analysis ./base-analysis
+
+# docker build -t oss-base-analysis ./base-analysis
+DOCKER_BUILDKIT=1 docker build \
+    -t oss-base-analysis \
+    --ssh default=$HOME/.ssh/id_ed25519 \
+    ./base-analysis
+
+DOCKER_BUILDKIT=1 docker build \
+    --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+    -t oss-base-analysis-crash \
+    --ssh default=$HOME/.ssh/id_ed25519 \
+    ./base-analysis-crash
 # docker build -t enumetric-analysis:$1 ./analysis-libafl-enumetric
 
 DOCKER_BUILDKIT=1 docker build \
