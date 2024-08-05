@@ -57,8 +57,8 @@ curl https://sh.rustup.rs -sSf | bash -s -- -y
 echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
 source $HOME/.cargo/env
 
-git clone https://github.com/quic/AFLTriage.git $SRC/AFLTriage
-pushd $SRC/AFLTriage
+# git clone https://github.com/quic/AFLTriage.git $SRC/AFLTriage
+pushd $SRC/BAAFLTriage
 cargo build --release
-ln -s $SRC/AFLTriage/target/release/afltriage /usr/local/bin/afltriage
+ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
 popd

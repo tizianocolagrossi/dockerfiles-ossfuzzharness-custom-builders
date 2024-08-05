@@ -14,7 +14,7 @@ CRASHES=$FUZZ_OUT/crashes/
 # are slower than this.
 LIBAFL_FUZZER_ARGS="-t 5000"
 
-CMD_LINE_CCOV_ECOV="$OUT/$FUZZER $LIBAFL_FUZZER_ARGS -o $FUZZ_OUT -d -r -m $QUEUE_TEST_CASE"
+CMD_LINE_CCOV_ECOV="$OUT/$FUZZER $LIBAFL_FUZZER_ARGS -o $FUZZ_OUT -d -m --timeout-inputs $QUEUE_TEST_CASE"
 
 CMD_CCOV_MERGE="llvm-profdata-13 merge $OUT/default.profraw -o $OUT/default.profdata" 
 CMD_CCOV_EXPORT="llvm-cov-13 export --format=text --instr-profile $OUT/default.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json"
@@ -23,46 +23,44 @@ CMD_CCOV_EXPORT="llvm-cov-13 export --format=text --instr-profile $OUT/default.p
 # afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --bucket-strategy first_5_frames -t 15000 -- $OUT/$FUZZER @@
 # afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --bucket-strategy first_frame -t 15000 -- $OUT/$FUZZER @@
 
-CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
-CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
+CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
+CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 
 pushd $FUZZ_OUT
 unzip  fuzz_out.zip
 popd
 
-if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]] || [[ ! -d $FUZZ_OUT/mapdump ]]; then
-    echo "INNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
-    if [[ ! -f $FUZZ_OUT/queue-preanalysis ]] ; then
+# if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]] || [[ ! -d $FUZZ_OUT/mapdump ]]; then
+#     # echo "INNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+#     # if [[ ! -f $FUZZ_OUT/queue-preanalysis ]] ; then
 
-        #check for element in queue that will lock
-        for element in $QUEUE_TEST_CASE; do
-            timeout 5 $OUT/$FUZZER -o $FUZZ_OUT $element
-            ret=$?
-            if [ $ret -eq 124 ] ; then
-                mkdir -p $FUZZ_OUT/timeout-queue/
-                mv $element $FUZZ_OUT/timeout-queue/
-            fi 
+#     #     #check for element in queue that will lock
+#     #     for element in $QUEUE_TEST_CASE; do
+#     #         timeout 5 $OUT/$FUZZER -o $FUZZ_OUT $element
+#     #         ret=$?
+#     #         if [ $ret -eq 124 ] ; then
+#     #             mkdir -p $FUZZ_OUT/timeout-queue/
+#     #             mv $element $FUZZ_OUT/timeout-queue/
+#     #         fi 
 
-            if [ $ret -ne 0 ] ; then
-                mkdir -p $FUZZ_OUT/crashes-queue/
-                mv $element $FUZZ_OUT/crashes-queue/
-            fi 
-        done
+#     #         if [ $ret -ne 0 ] ; then
+#     #             mkdir -p $FUZZ_OUT/crashes-queue/
+#     #             mv $element $FUZZ_OUT/crashes-queue/
+#     #         fi 
+#     #     done
 
-    fi
-    ls /out/
-    touch $FUZZ_OUT/queue-preanalysis
+#     # fi
+#     # ls /out/
+#     # touch $FUZZ_OUT/queue-preanalysis
 
-    bash -c "$CMD_LINE_CCOV_ECOV"
-fi
+#     # bash -c "$CMD_LINE_CCOV_ECOV"
+# fi
 
-if [[ ! -s $FUZZ_OUT/llvmcov.json ]]; then
-    bash -c "$CMD_CCOV_MERGE"
-    bash -c "$CMD_CCOV_EXPORT"
-fi
+# if [[ ! -s $FUZZ_OUT/llvmcov.json ]]; then
+#     bash -c "$CMD_CCOV_MERGE"
+#     bash -c "$CMD_CCOV_EXPORT"
+# fi
 
-rm $CRASHES.*.metadata 
-rm $CRASHES.*.lafl_lock 
 if [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]]; then
     bash -c "$CMD_LINE_DEDUP_CRASH_5"
 fi
@@ -74,3 +72,10 @@ fi
 cd $FUZZ_OUT
 rm -r ./queue 
 rm -r ./crashes
+
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.00/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.01/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.02/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.03/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.04/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.05/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/enumetricbb++/fuzz_pdfload ; done;

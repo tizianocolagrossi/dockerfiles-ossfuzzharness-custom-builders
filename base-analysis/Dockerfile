@@ -14,8 +14,13 @@
 #
 ################################################################################
 FROM oss-base-image
+RUN apt-get update && apt-get install -y git ssh
 
 #RUN sudo sysctl -w kernel.core_pattern="core"
+RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/BAAFLTriage.git /src/BAAFLTriage 
+
 
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
