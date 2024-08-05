@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp5-lafl0.12
+FROM base-builder:v0.2.6tmp6-lafl0.12
 RUN apt-get update && apt-get install -y make autoconf automake libtool cmake zlib1g-dev pkg-config libssl-dev
 RUN git clone https://github.com/h2o/h2o
 WORKDIR h2o

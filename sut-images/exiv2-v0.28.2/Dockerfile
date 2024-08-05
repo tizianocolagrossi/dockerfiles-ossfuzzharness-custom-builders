@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 ################################################################################
-FROM base-builder:v0.2.6tmp5-lafl0.12
+FROM base-builder:v0.2.6tmp6-lafl0.12
 
 RUN git clone https://github.com/Exiv2/exiv2 exiv2
 RUN ./exiv2/ci/install_dependencies.sh
