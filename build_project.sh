@@ -1,8 +1,14 @@
 #! /bin/bash
 
-if [ "$#" -ne 1 ]
+if [ "$#" -eq 0 ]
 then
-  echo "USAGE: $0 <project-path>"
+  echo "USAGE: $0 <project-path> <analysis baseline enumetric enumetric++ enumetricbb++ aflpp>"
+  exit 1
+fi
+
+if [ "$#" -eq 1 ]
+then
+  echo "USAGE: $0 $1 <analysis baseline enumetric enumetric++ enumetricbb++ aflpp>"
   exit 1
 fi
 
@@ -14,7 +20,9 @@ echo $project_name
 
 docker build -t fuzzbuild/$project_name $project_path/
 
-for type in  analysis ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp
+shift
+
+for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp
     cmd=compile_$type
     echo $type
     echo $cmd
