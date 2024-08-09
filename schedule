@@ -8,6 +8,13 @@ if [ -n "$1" ] ; then
     fi
 fi
 
+# cat /sys/devices/system/cpu/cpu0/topology/thread_siblings_list
+
+get_cpu_siblings() {
+    local cpuid=$1
+    cat /sys/devices/system/cpu/cpu"$cpuid"/topology/thread_siblings_list
+}
+
 perform_task() {
     fuzzer=$1
     shift
@@ -40,10 +47,10 @@ perform_task() {
         core_id=$(($counter+$cor_start-1))
         if [ $DUMMY == 1 ] ; then
             #dummy
-            echo "docker run --cpuset-cpus=$core_id --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e CPU_ID_BIND=$core_id -t oss-base-runner run_fuzzer $fuzzer $*"
         else
             #real
-            echo "docker run --cpuset-cpus=$core_id --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e CPU_ID_BIND=$core_id -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
         fi
     done
 }
@@ -82,33 +89,35 @@ TIME_UNIT=$(($TIME_UNIT+$DELTA))
 
 ROUND_TIME=$((TIME_UNIT * 0))
 perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline $RUN 3 $TIMEOUT $ROUND_TIME 
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline $RUN 3 $TIMEOUT $ROUND_TIME 
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
 
 
-ROUND_TIME=$((TIME_UNIT * 1))
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric $RUN 0 $TIMEOUT $ROUND_TIME 
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++ $RUN 6 $TIMEOUT $ROUND_TIME 
+# ROUND_TIME=$((TIME_UNIT * 1))
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric $RUN 0 $TIMEOUT $ROUND_TIME 
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++ $RUN 6 $TIMEOUT $ROUND_TIME 
 
 
-ROUND_TIME=$((TIME_UNIT * 2))
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
-perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++ $RUN 3 $TIMEOUT $ROUND_TIME 
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+# ROUND_TIME=$((TIME_UNIT * 2))
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
+# perform_task fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetricbb++/ ~/outputs/mbedtls-e483a7_enumetricbb++ $RUN 3 $TIMEOUT $ROUND_TIME 
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
 
 
-ROUND_TIME=$((TIME_UNIT * 3))
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline $RUN 0 $TIMEOUT $ROUND_TIME 
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric $RUN 6 $TIMEOUT $ROUND_TIME 
+# ROUND_TIME=$((TIME_UNIT * 3))
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/baseline/ ~/outputs/pcapplusplus-a817631_baseline $RUN 0 $TIMEOUT $ROUND_TIME 
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric/ ~/outputs/pcapplusplus-a817631_enumetric $RUN 6 $TIMEOUT $ROUND_TIME 
 
 
-ROUND_TIME=$((TIME_UNIT * 4))
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++ $RUN 3 $TIMEOUT $ROUND_TIME 
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+# ROUND_TIME=$((TIME_UNIT * 4))
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetric++/ ~/outputs/pcapplusplus-a817631_enumetric++ $RUN 3 $TIMEOUT $ROUND_TIME 
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
 
 
-ROUND_TIME=$((TIME_UNIT * 5))
-perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++ $RUN 0 $TIMEOUT $ROUND_TIME 
+# ROUND_TIME=$((TIME_UNIT * 5))
+# perform_task FuzzTarget ~/sut-docker/v0.2.6tmp0/pcapplusplus-a817631/enumetricbb++/ ~/outputs/pcapplusplus-a817631_enumetricbb++ $RUN 0 $TIMEOUT $ROUND_TIME 
+
+get_cpu_siblings 1

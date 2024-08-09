@@ -134,6 +134,15 @@ elif [[ "$FUZZING_ENGINE" = libafl ]]; then
   # are slower than this.
   LIBAFL_FUZZER_ARGS="-t 5000"
 
+  if [[ -z "${CPU_ID_BIND+x}" ]]; then
+    echo "CPU_ID_BIND is not set so use all cpu available"
+  elif [[ -z "${CPU_ID_BIND}" ]]; then
+    echo "CPU_ID_BIND is set but empty so use all cpu available"
+  else
+    echo "CPU_ID_BIND is set. binding to $CPU_ID_BIND"
+    LIBAFL_FUZZER_ARGS="$LIBAFL_FUZZER_ARGS -b $CPU_ID_BIND"
+  fi
+
   # AFL expects at least 1 file in the input dir.
   echo hi > ${CORPUS_DIR}/0
   
