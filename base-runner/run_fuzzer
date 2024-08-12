@@ -182,4 +182,6 @@ bash -c "$CMD_LINE; echo zipping"
 
 cd $FUZZ_OUT
 zip -r fuzz_out.zip ./*
+chown -R $OUTUID:$OUTGID $FUZZ_OUT
+ls -l
 find . -not -name fuzz_out.zip -delete
