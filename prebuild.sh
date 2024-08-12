@@ -18,11 +18,11 @@ DOCKER_BUILDKIT=1 docker build \
     --ssh default=$HOME/.ssh/id_ed25519 \
     ./base-analysis
 
-DOCKER_BUILDKIT=1 docker build \
-    --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-    -t oss-base-analysis-crash \
-    --ssh default=$HOME/.ssh/id_ed25519 \
-    ./base-analysis-crash
+# DOCKER_BUILDKIT=1 docker build \
+#     --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+#     -t oss-base-analysis-crash \
+#     --ssh default=$HOME/.ssh/id_ed25519 \
+#     ./base-analysis-crash
 # docker build -t enumetric-analysis:$1 ./analysis-libafl-enumetric
 
 DOCKER_BUILDKIT=1 docker build \
