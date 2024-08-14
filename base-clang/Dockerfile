@@ -16,7 +16,7 @@
 
 # Docker image with head clang installed.
 
-FROM oss-base-image
+FROM osvaldo/oss-base-image
 
 ARG arch=x86_64
 

@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM base-builder:v0.2.6tmp6-lafl0.12
+FROM osvaldo/base-builder:v0.2.6tmp6-lafl0.12
 
 RUN apt-get update && apt-get install -y cmake autoconf flex bison
 RUN git clone --depth=1 https://github.com/seladb/PcapPlusPlus PcapPlusPlus

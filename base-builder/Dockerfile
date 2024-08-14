@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM oss-base-clang
+FROM osvaldo/oss-base-clang
 
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh

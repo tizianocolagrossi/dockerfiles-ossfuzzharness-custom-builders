@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 ################################################################################
-FROM oss-base-image
+FROM osvaldo/oss-base-image
 RUN apt-get update && apt-get install -y git ssh
 
 #RUN sudo sysctl -w kernel.core_pattern="core"
