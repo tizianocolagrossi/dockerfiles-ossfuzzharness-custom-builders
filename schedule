@@ -1,5 +1,8 @@
 #! /bin/bash
 
+RAMMAX=4g
+WRITEMAX=4g
+
 #docker-run-cpu-affinity --rm -v ~/sut-docker/xpdf-v4.00/baseline/:/out -v ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog-$id:/fuzz_out -e FUZZING_ENGINE=libafl -e TIMEOUT=5m -t oss-base-runner run_fuzzer fuzz_pdfload
 DUMMY=1
 if [ -n "$1" ] ; then
@@ -47,10 +50,10 @@ perform_task() {
         core_id=$(($counter+$cor_start-1))
         if [ $DUMMY == 1 ] ; then
             #dummy
-            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t oss-base-runner run_fuzzer $fuzzer $*"
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
         else
             #real
-            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=libafl -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
         fi
     done
 }
