@@ -21,8 +21,8 @@
 # AFL++ setup
 echo "Copying precompiled AFL++"
 
-# Copy AFL++ tools necessary for fuzzing.
-pushd $SRC/aflplusplus > /dev/null
+# Copy AFLppDoubleMap tools necessary for fuzzing.
+pushd $SRC/AFLppDoubleMap > /dev/null
 
 cp -f libAFLDriver.a $LIB_FUZZING_ENGINE
 
