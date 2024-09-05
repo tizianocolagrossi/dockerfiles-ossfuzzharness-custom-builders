@@ -128,9 +128,11 @@ ENV FUZZER_LDFLAGS ""
 
 WORKDIR $SRC
 
+# get version of aflplusplus v4.21c since double map is v4.21c taken from this version 
+# to have a sound comparison
 RUN git clone https://github.com/AFLplusplus/AFLplusplus.git aflplusplus && \
     cd aflplusplus && \
-    git checkout 1d17210 
+    git checkout 9f6b012 
 
 # Do precompiles before copying other scripts for better cache efficiency.
 COPY precompile_aflpp /usr/local/bin/
