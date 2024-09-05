@@ -18,54 +18,6 @@ get_cpu_siblings() {
     cat /sys/devices/system/cpu/cpu"$cpuid"/topology/thread_siblings_list
 }
 
-perform_task() {
-    fuzzing_engine=$1
-    shift
-    fuzzer=$1
-    shift
-    fuzzer_dir=$1
-    shift
-    output_dir=$1
-    shift
-    runs=$1
-    shift
-    cor_start=$1
-    shift
-    timeout=$1
-    shift
-    min_start=$1
-    shift
-    
-    if [[ "$fuzzing_engine" != "afl" || "$fuzzing_engine" != "libafl" ]]; then
-        echo "Error: The variable must be either 'afl' or 'libafl', not $fuzzing_engine."
-        exit 1
-    fi
-
-    ls $fuzzer_dir > /dev/null
-    if [[ ! $? -eq 0 ]]; then
-	echo "ERROR $fuzzer_dir do not exist"
-	exit 1
-    fi
-    ls $fuzzer_dir/$fuzzer > /dev/null
-    if [[ ! $? -eq 0 ]]; then
-        echo "ERROR $fuzzer not present in $fuzzer_dir"
-        exit 1
-    fi
-    # Loop from core_start to core_end
-    for counter in $(seq 1 ${runs}); do
-        minutes=$min_start
-        core_id=$(($counter+$cor_start-1))
-        if [ $DUMMY == 1 ] ; then
-            #dummy
-            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=0 -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
-        else
-            #real
-            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=0 -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
-        fi
-    done
-}
-
-
 convert_to_minutes() {
     local time_str="$1"
     
@@ -87,9 +39,61 @@ convert_to_minutes() {
     echo "$minutes"
 }
 
-TIMEOUT="24h"
+perform_task() {
+    fuzzing_engine=$1
+    shift
+    fuzzer=$1
+    shift
+    fuzzer_dir=$1
+    shift
+    output_dir=$1
+    shift
+    runs=$1
+    shift
+    cor_start=$1
+    shift
+    timeout=$1
+    shift
+    min_start=$1
+    shift
+    
+    if [[ "$fuzzing_engine" != "afl" && "$fuzzing_engine" != "libafl" ]]; then
+        echo "Error: The variable must be either 'afl' or 'libafl', not $fuzzing_engine."
+        exit 1
+    fi
+
+    if [[ "$fuzzing_engine" == "afl" ]]; then
+        timeout=$(convert_to_minutes $timeout)
+        timeout=$(($timeout*60))
+    fi
+
+    ls $fuzzer_dir > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+        echo "ERROR $fuzzer_dir do not exist"
+        exit 1
+    fi
+    ls $fuzzer_dir/$fuzzer > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+        echo "ERROR $fuzzer not present in $fuzzer_dir"
+        exit 1
+    fi
+    # Loop from core_start to core_end
+    for counter in $(seq 1 ${runs}); do
+        minutes=$min_start
+        core_id=$(($counter+$cor_start-1))
+        if [ $DUMMY == 1 ] ; then
+            #dummy
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=0 -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
+        else
+            #real
+            echo "docker run --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=0 -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+        fi
+    done
+}
+
+TIMEOUT="2m"
 DELTA="15"
-RUN="3"
+RUN="1"
 
 TIME_UNIT=$(convert_to_minutes $TIMEOUT)
 TIME_UNIT=$(($TIME_UNIT+$DELTA))
@@ -97,17 +101,14 @@ TIME_UNIT=$(($TIME_UNIT+$DELTA))
 # #             fuzzing-engine   fuzzer       fuzz_dir                          out_dir_prefx                                run core_start timeout  min_start additional_options
 # #perform_task afl|libafl       fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   0          5m       1         -c
 
-# ROUND_TIME=$((TIME_UNIT * 0))
-# perform_task afl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline_cmplog $RUN 0 $TIMEOUT $ROUND_TIME -c
-# perform_task afl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/baseline/ ~/outputs/mbedtls-e483a7_baseline $RUN 3 $TIMEOUT $ROUND_TIME 
-# perform_task afl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric_cmplog $RUN 6 $TIMEOUT $ROUND_TIME -c
+ROUND_TIME=$((TIME_UNIT * 0))
+perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflpp                     ~/outputs/bloaty-2020-05-25_aflpp_cmplog         $RUN 0 $TIMEOUT $ROUND_TIME 
+perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetric     ~/outputs/bloaty-2020-05-25_enumetric_cmplog     $RUN 1 $TIMEOUT $ROUND_TIME 
+perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetric++   ~/outputs/bloaty-2020-05-25_enumetric++_cmplog   $RUN 2 $TIMEOUT $ROUND_TIME 
+perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetricbb++ ~/outputs/bloaty-2020-05-25_enumetricbb++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME 
 
 
 # ROUND_TIME=$((TIME_UNIT * 1))
 # perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric $RUN 0 $TIMEOUT $ROUND_TIME 
 # perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
 # perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++ $RUN 6 $TIMEOUT $ROUND_TIME 
-
-
-
-get_cpu_siblings 1
