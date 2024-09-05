@@ -27,3 +27,4 @@ WORKDIR PcapPlusPlus
 
 COPY build.sh $SRC
 COPY *.options $SRC
+COPY *.patch $SRC

@@ -1,0 +1,13 @@
+diff --git a/Tests/Fuzzers/Makefile b/Tests/Fuzzers/Makefile
+index 75054e56..c686102a 100644
+--- a/Tests/Fuzzers/Makefile
++++ b/Tests/Fuzzers/Makefile
+@@ -13,7 +13,7 @@ CUR_TARGET := $(notdir $(shell pwd))
+ all:
+ 	@echo ==== Building target: $(CUR_TARGET) ====
+ 	@mkdir -p Bin
+-	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(LIB_FUZZING_ENGINE) $(PCAPPP_LIBS_DIR) $(PCAPPP_INCLUDES) -o Bin/FuzzTarget FuzzTarget.cpp $(PCAPPP_LIBS)
++	@$(CXX) $(PCAPPP_BUILD_FLAGS) $(LIB_FUZZING_ENGINE) $(PCAPPP_LIBS_DIR) $(PCAPPP_INCLUDES) -I/usr/include/dbus-1.0 -I/usr/lib/x86_64-linux-gnu/dbus-1.0/include -o Bin/FuzzTarget FuzzTarget.cpp -ldbus-1 $(PCAPPP_LIBS)
+ 	@echo Finished successfully building: $(CUR_TARGET)
+ 
+ clean:

@@ -29,6 +29,8 @@ BKCXX=$CXX
 BKCCC=$CCC
 BKCFLAGS=$CFLAGS
 
+export LDFLAGS="-Wl,--copy-dt-needed-entries"
+
 export CC=clang-13
 export CXX=clang++-13
 export CCC=clang++-13
@@ -38,6 +40,8 @@ export PKG_CONFIG="`which pkg-config` --static"
 export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export PATH=$PREFIX/bin:$PATH
 pushd $SRC/freetype
+# git fetch -pP
+# git checkout e8ebfe98
 ./autogen.sh
 ./configure --prefix="$PREFIX" --disable-shared PKG_CONFIG_PATH="$PKG_CONFIG_PATH" --with-png=no --with-zlib=no 
 make -j$(nproc)
@@ -52,9 +56,9 @@ export CFLAGS="$BKCFLAGS"
 rm ./xpdf/CMakeLists.txt
 mv $SRC/CMakeLists.txt.xpdf ./xpdf/CMakeLists.txt
 
-# # Make minor change in the CMakeFiles file.
-# sed -i 's/#--- object files needed by XpdfWidget/add_library(testXpdfStatic STATIC $<TARGET_OBJECTS:xpdf_objs>)\n#--- object files needed by XpdfWidget/' ./xpdf/CMakeLists.txt
-# sed -i 's/#--- pdftops/add_library(testXpdfWidgetStatic STATIC $<TARGET_OBJECTS:xpdf_widget_objs>\n $<TARGET_OBJECTS:splash_objs>\n $<TARGET_OBJECTS:xpdf_objs>\n ${FREETYPE_LIBRARY}\n ${FREETYPE_OTHER_LIBS})\n#--- pdftops/' ./xpdf/CMakeLists.txt
+# # # Make minor change in the CMakeFiles file.
+# # sed -i 's/#--- object files needed by XpdfWidget/add_library(testXpdfStatic STATIC $<TARGET_OBJECTS:xpdf_objs>)\n#--- object files needed by XpdfWidget/' ./xpdf/CMakeLists.txt
+# # sed -i 's/#--- pdftops/add_library(testXpdfWidgetStatic STATIC $<TARGET_OBJECTS:xpdf_widget_objs>\n $<TARGET_OBJECTS:splash_objs>\n $<TARGET_OBJECTS:xpdf_objs>\n ${FREETYPE_LIBRARY}\n ${FREETYPE_OTHER_LIBS})\n#--- pdftops/' ./xpdf/CMakeLists.txt
 
 # Build the project
 mkdir build && cd build
@@ -68,7 +72,7 @@ make -j$(nproc)
 for fuzzer in zxdoc pdfload JBIG2; do
     cp ../../fuzz_$fuzzer.cc .
     $CXX fuzz_$fuzzer.cc -o $OUT/fuzz_$fuzzer $CXXFLAGS $LIB_FUZZING_ENGINE \
-      ./xpdf/libtestXpdfStatic.a ./fofi/libfofi.a ./goo/libgoo.a ./splash/libsplash.a ./xpdf/libtestXpdfWidgetStatic.a /work/prefix/lib/libfreetype.a \
+      ./xpdf/libtestXpdfStatic.a ./fofi/libfofi.a ./goo/libgoo.a ./splash/libsplash.a ./xpdf/libtestXpdfWidgetStatic.a $(find / -name libharfbuzz.so) /work/prefix/lib/libfreetype.a \
       -I../ -I../goo -I../fofi -I. -I../xpdf -I../splash
 done
 

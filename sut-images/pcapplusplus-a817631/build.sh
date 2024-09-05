@@ -18,25 +18,28 @@
 
 # taken at ossfuzz commit 0990a14
 
-CFLAGS="-ldbus-1 $CFLAGS"
-CXXFLAGS="-ldbus-1 $CXXFLAGS"
+# CFLAGS="-ldbus-1 $CFLAGS"
+# CXXFLAGS="-ldbus-1 $CXXFLAGS"
 
 pushd $SRC/PcapPlusPlus
 git fetch --all -pP
 git checkout a817631
+git apply $SRC/fuzzers_makepile.patch
 popd
 
 pushd $SRC/libpcap
 
 popd
 
-pkg-config --libs --cflags dbus-1
+# pkg-config --libs --cflags dbus-1
 
 # Build libpcap
 cd $SRC/libpcap/
 ./autogen.sh
 ./configure --enable-shared=no
 make -j$(nproc)
+
+cat $SRC/PcapPlusPlus/Tests/Fuzzers/Makefile
 
 # Build PcapPlusPlus linking statically against the built libpcap
 cd $SRC/PcapPlusPlus
