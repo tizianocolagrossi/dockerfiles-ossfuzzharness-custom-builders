@@ -34,6 +34,9 @@ RUN --mount=type=ssh \
 RUN --mount=type=ssh \
   git clone git@github.com:tizianocolagrossi/LibAFL-0.12.0-Enumetric.git /src/LibAFL-0.12.0-Enumetric 
 
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
+
 COPY checkout_build_enumetric.sh /root/
 # # Keep all steps in the same script to decrease the number of intermediate
 # # layes in docker file.
@@ -43,33 +46,33 @@ RUN rm /root/checkout_build_enumetric.sh
 
 RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
 
-# Build and install latest Python 3 (3.8.3).
-ENV PYTHON_VERSION 3.8.3
-RUN export PYTHON_DEPS="\
-        zlib1g-dev \
-        libncurses5-dev \
-        libgdbm-dev \
-        libnss3-dev \
-        libssl-dev \
-        libsqlite3-dev \
-        libreadline-dev \
-        libffi-dev \
-        libbz2-dev \
-        liblzma-dev" && \
-    unset CFLAGS CXXFLAGS && \
-    apt-get install -y $PYTHON_DEPS && \
-    cd /tmp && \
-    curl -O https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tar.xz && \
-    tar -xvf Python-$PYTHON_VERSION.tar.xz && \
-    cd Python-$PYTHON_VERSION && \
-    ./configure --enable-optimizations --enable-shared && \
-    make -j install && \
-    ldconfig && \
-    ln -s /usr/bin/python3 /usr/bin/python && \
-    cd .. && \
-    rm -r /tmp/Python-$PYTHON_VERSION.tar.xz /tmp/Python-$PYTHON_VERSION && \
-    rm -rf /usr/local/lib/python3.8/test && \
-    apt-get remove -y $PYTHON_DEPS # https://github.com/google/oss-fuzz/issues/3888
+# # Build and install latest Python 3 (3.8.3).
+# ENV PYTHON_VERSION 3.8.3
+# RUN export PYTHON_DEPS="\
+#         zlib1g-dev \
+#         libncurses5-dev \
+#         libgdbm-dev \
+#         libnss3-dev \
+#         libssl-dev \
+#         libsqlite3-dev \
+#         libreadline-dev \
+#         libffi-dev \
+#         libbz2-dev \
+#         liblzma-dev" && \
+#     unset CFLAGS CXXFLAGS && \
+#     apt-get install -y $PYTHON_DEPS && \
+#     cd /tmp && \
+#     curl -O https://www.python.org/ftp/python/$PYTHON_VERSION/Python-$PYTHON_VERSION.tar.xz && \
+#     tar -xvf Python-$PYTHON_VERSION.tar.xz && \
+#     cd Python-$PYTHON_VERSION && \
+#     ./configure --enable-optimizations --enable-shared && \
+#     make -j install && \
+#     ldconfig && \
+#     ln -s /usr/bin/python3 /usr/bin/python && \
+#     cd .. && \
+#     rm -r /tmp/Python-$PYTHON_VERSION.tar.xz /tmp/Python-$PYTHON_VERSION && \
+#     rm -rf /usr/local/lib/python3.8/test && \
+#     apt-get remove -y $PYTHON_DEPS # https://github.com/google/oss-fuzz/issues/3888
 
 
 # Default build flags for various sanitizers.
@@ -135,6 +138,10 @@ RUN precompile_aflpp
 
 COPY compile \
     compile_analysis \
+    compile_aflppdouble_baseline \
+    compile_aflppdouble_enumetric \
+    compile_aflppdouble_enumetric++ \
+    compile_aflppdouble_enumetricbb++ \
     compile_baseline \
     compile_enumetric \
     compile_enumetric++ \

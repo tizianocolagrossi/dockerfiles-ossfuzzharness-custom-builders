@@ -9,9 +9,9 @@ for project in ./sut-images/* ; do
     project_name=$(basename $project_path)
     echo $project_name
 
-    docker build -t fuzzbuild/$project_name $project_path/
+    docker build -t osvaldo/$project_name $project_path/
 
-    for type in  analysis enumetricbb++ ; do # analysis baseline enumetric enumetric++ enumetricbb++
+    for type in  aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++ ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++
         cmd=compile_$type
         echo $type
         echo $cmd
@@ -21,6 +21,6 @@ for project in ./sut-images/* ; do
             continue
         fi
         mkdir -p $build_dir
-        docker run -it --rm -v $build_dir:/out -t fuzzbuild/$project_name $cmd
+        docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name $cmd
     done 
 done

@@ -20,6 +20,33 @@
 
 sysctl -w vm.mmap_rnd_bits=28
 
+# Assign the provided directory to a variable
+SOURCE_DIR="$OUT"
+
+ls $OUT
+
+# Destination directory where the symbolic links will be created
+DEST_DIR="/lib/x86_64-linux-gnu/"
+
+# Iterate over all files in the provided directory that start with 'lib'
+for file in $SOURCE_DIR/lib*; do
+  if [ -f "$file" ]; then
+    # Extract the base name of the file
+    base_name=$(basename "$file")
+
+    # Check if the symbolic link already exists
+    if [ ! -e "$DEST_DIR/$base_name" ]; then
+      # Create a symbolic link in the destination directory
+      ln -s "$file" "$DEST_DIR/$base_name"
+      echo "Created symlink for $base_name"
+    else
+      echo "Symlink for $base_name already exists"
+    fi
+  fi
+done
+
+ls $DEST_DIR
+
 export PATH=$OUT:$PATH
 cd $OUT
 
@@ -113,10 +140,19 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   # are slower than this.
   AFL_FUZZER_ARGS="$AFL_FUZZER_ARGS -t 5000+"
 
+  if [[ -z "${CPU_ID_BIND+x}" ]]; then
+    echo "CPU_ID_BIND is not set so use all cpu available"
+  elif [[ -z "${CPU_ID_BIND}" ]]; then
+    echo "CPU_ID_BIND is set but empty so use all cpu available"
+  else
+    echo "CPU_ID_BIND is set. binding to $CPU_ID_BIND"
+    AFL_FUZZER_ARGS="$AFL_FUZZER_ARGS -b $CPU_ID_BIND"
+  fi
+
   # AFL expects at least 1 file in the input dir.
   echo input > ${CORPUS_DIR}/input
 
-  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS  -b $CORE -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
+  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
 
   echo afl++ setup:
   env|grep AFL_
