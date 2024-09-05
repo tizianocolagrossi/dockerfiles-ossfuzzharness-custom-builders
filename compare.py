@@ -123,12 +123,15 @@ def get_fuzzinfo_ddl(paths):
 
 def get_total_amounts_llvm_cov(json_path):
     di = dict()
-    with open(json_path, 'r') as fd:
-        cov_data = json.load(fd)
-    
-    for coverage_type in cov_data['data'][0]['totals']:
-        di[coverage_type]=cov_data['data'][0]['totals'][coverage_type]['percent']
-    return di
+    try:
+        with open(json_path, 'r') as fd:
+            cov_data = json.load(fd)
+        
+        for coverage_type in cov_data['data'][0]['totals']:
+            di[coverage_type]=cov_data['data'][0]['totals'][coverage_type]['percent']
+        return di
+    except:
+        return None
 
 def get_cov_ddl(paths):
     ddl = defaultdict(dict)
@@ -155,17 +158,20 @@ def get_crash_dds(paths):
 def get_enumap_dl(paths):
 
     dl = defaultdict(list)
-    for tag, path_mapdump in track(paths, "Getting enumeration map info..."):
-        with open(os.path.join(path_mapdump), 'rb') as fd:
-            data = fd.read()
-            data_array = np.frombuffer(data, dtype=np.uint8)
+    try:
+        for tag, path_mapdump in track(paths, "Getting enumeration map info..."):
+            with open(os.path.join(path_mapdump), 'rb') as fd:
+                data = fd.read()
+                data_array = np.frombuffer(data, dtype=np.uint8)
 
-        hitted = 0
-        for x in data_array:
-            if x != 0:
-                hitted += 1    
-        dl[tag].append(hitted)
-    return dl
+            hitted = 0
+            for x in data_array:
+                if x != 0:
+                    hitted += 1    
+            dl[tag].append(hitted)
+        return dl
+    except:
+        return None
 
 def plot_exec_corpus_obj(ddl, libname, ext):
     if ext[0] != '.':
@@ -486,144 +492,144 @@ def main():
     name=args.n
     ext=args.x
     plot_exec_corpus_obj(fuzzers_info, name, ext)
-    plot_cov_data(fuzzers_code_coverage, name, ext)
-    plot_enumap_data(fuzzers_enum_coverage, name, ext)
+    # plot_cov_data(fuzzers_code_coverage, name, ext)
+    # plot_enumap_data(fuzzers_enum_coverage, name, ext)
     plot_crashes(fuzzers_crashes_deduplicated, name, ext )
 
-    ddata = defaultdict(lambda: defaultdict(list))
-    tags = list(fuzzers_code_coverage.keys())
-    tags.sort()
+    # ddata = defaultdict(lambda: defaultdict(list))
+    # tags = list(fuzzers_code_coverage.keys())
+    # tags.sort()
 
-    for tag in fuzzers_code_coverage:
-        for run in fuzzers_code_coverage[tag]:
-            for type in fuzzers_code_coverage[tag][run]:
-                ddata[tag][type].append(fuzzers_code_coverage[tag][run][type])
+    # for tag in fuzzers_code_coverage:
+    #     for run in fuzzers_code_coverage[tag]:
+    #         for type in fuzzers_code_coverage[tag][run]:
+    #             ddata[tag][type].append(fuzzers_code_coverage[tag][run][type])
     
-    boxplot_data_br = defaultdict(list)
-    boxplot_data_fn = defaultdict(list)
-    boxplot_data_in = defaultdict(list)
-    boxplot_data_ln = defaultdict(list)
-    boxplot_data_re = defaultdict(list)
-    labels = []
-    for tag in tags:
-        boxplot_data_br[tag].append(ddata[tag]['branches'])
-        boxplot_data_fn[tag].append(ddata[tag]['functions'])
-        boxplot_data_in[tag].append(ddata[tag]['instantiations'])
-        boxplot_data_ln[tag].append(ddata[tag]['lines'])
-        boxplot_data_re[tag].append(ddata[tag]['regions'])
-        labels.append(tag)
+    # boxplot_data_br = defaultdict(list)
+    # boxplot_data_fn = defaultdict(list)
+    # boxplot_data_in = defaultdict(list)
+    # boxplot_data_ln = defaultdict(list)
+    # boxplot_data_re = defaultdict(list)
+    # labels = []
+    # for tag in tags:
+    #     boxplot_data_br[tag].append(ddata[tag]['branches'])
+    #     boxplot_data_fn[tag].append(ddata[tag]['functions'])
+    #     boxplot_data_in[tag].append(ddata[tag]['instantiations'])
+    #     boxplot_data_ln[tag].append(ddata[tag]['lines'])
+    #     boxplot_data_re[tag].append(ddata[tag]['regions'])
+    #     labels.append(tag)
 
-    ddata = defaultdict(lambda: defaultdict(list))
-    tags = list(fuzzers_crashes_deduplicated.keys())
-    tags.sort()
+    # ddata = defaultdict(lambda: defaultdict(list))
+    # tags = list(fuzzers_crashes_deduplicated.keys())
+    # tags.sort()
 
-    for tag in fuzzers_crashes_deduplicated:
-        for run in fuzzers_crashes_deduplicated[tag]:
-            for type in fuzzers_crashes_deduplicated[tag][run]:
-                ddata[tag][type].append(fuzzers_crashes_deduplicated[tag][run][type])
+    # for tag in fuzzers_crashes_deduplicated:
+    #     for run in fuzzers_crashes_deduplicated[tag]:
+    #         for type in fuzzers_crashes_deduplicated[tag][run]:
+    #             ddata[tag][type].append(fuzzers_crashes_deduplicated[tag][run][type])
 
-    boxplot_data_first_1 = defaultdict(list)
-    boxplot_data_first_5 = defaultdict(list)
+    # boxplot_data_first_1 = defaultdict(list)
+    # boxplot_data_first_5 = defaultdict(list)
 
-    labels = []
-    for tag in tags:
-        for crashes in ddata[tag]['first-frame']:
-            boxplot_data_first_1[tag].append(len(crashes))
-        for crashes in ddata[tag]['first-5-frames']: 
-            boxplot_data_first_5[tag].append(len(crashes))
-        labels.append(tag)
-    print(boxplot_data_first_1)
-    table = Table(title="Comp p-value mannwhitneyu")
-    tableva = Table(title="Comp a_12 vargha delaney")
-    tablewd = Table(title="Comp wasserstein_distance")
+    # labels = []
+    # for tag in tags:
+    #     for crashes in ddata[tag]['first-frame']:
+    #         boxplot_data_first_1[tag].append(len(crashes))
+    #     for crashes in ddata[tag]['first-5-frames']: 
+    #         boxplot_data_first_5[tag].append(len(crashes))
+    #     labels.append(tag)
+    # print(boxplot_data_first_1)
+    # table = Table(title="Comp p-value mannwhitneyu")
+    # tableva = Table(title="Comp a_12 vargha delaney")
+    # tablewd = Table(title="Comp wasserstein_distance")
 
-    kkk = list(fuzzers_enum_coverage.keys())
-    kkk.sort()
-    rm = []
-    for k in kkk:
-        if 'baseline' in k:
-            rm.append(k)
-    for k in rm:
-        kkk.remove(k)
-    table.add_column('baseline', justify="center", no_wrap=True)
-    tableva.add_column('baseline', justify="center", no_wrap=True)
-    tablewd.add_column('baseline', justify="center", no_wrap=True)
-    for k in kkk:
-        table.add_column(k, justify="center", no_wrap=True)
-        tableva.add_column(k, justify="center", no_wrap=True)
-        tablewd.add_column(k, justify="center", no_wrap=True)
-    labels = ['enum cov', 'crashes (1)','br cov','ln cov','fn cov']
-    data = defaultdict(list)
-    for baseline in fuzzers_enum_coverage:
-        row = [None]*(len(kkk)+1)
-        row[0] = k
-        rowva = [None]*(len(kkk)+1)
-        rowva[0] = k
-        rowwd = [None]*(len(kkk)+1)
-        rowwd[0] = k
+    # kkk = list(fuzzers_enum_coverage.keys())
+    # kkk.sort()
+    # rm = []
+    # for k in kkk:
+    #     if 'baseline' in k:
+    #         rm.append(k)
+    # for k in rm:
+    #     kkk.remove(k)
+    # table.add_column('baseline', justify="center", no_wrap=True)
+    # tableva.add_column('baseline', justify="center", no_wrap=True)
+    # tablewd.add_column('baseline', justify="center", no_wrap=True)
+    # for k in kkk:
+    #     table.add_column(k, justify="center", no_wrap=True)
+    #     tableva.add_column(k, justify="center", no_wrap=True)
+    #     tablewd.add_column(k, justify="center", no_wrap=True)
+    # labels = ['enum cov', 'crashes (1)','br cov','ln cov','fn cov']
+    # data = defaultdict(list)
+    # for baseline in fuzzers_enum_coverage:
+    #     row = [None]*(len(kkk)+1)
+    #     row[0] = k
+    #     rowva = [None]*(len(kkk)+1)
+    #     rowva[0] = k
+    #     rowwd = [None]*(len(kkk)+1)
+    #     rowwd[0] = k
    
-        if 'baseline' in baseline:
-            for compared in fuzzers_enum_coverage:
-                if baseline == compared:
-                    continue
-                if 'baseline' in compared:
-                    continue
+    #     if 'baseline' in baseline:
+    #         for compared in fuzzers_enum_coverage:
+    #             if baseline == compared:
+    #                 continue
+    #             if 'baseline' in compared:
+    #                 continue
                 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(fuzzers_enum_coverage[baseline], fuzzers_enum_coverage[compared])
-                s = f'ce:{p},'
-                sva = f'ce:{a_12_l[0]},'
-                swd = f'ce:{w_1:.1f},'
-                data[f'{baseline} vs {compared}'].append(a_12_v)
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(fuzzers_enum_coverage[baseline], fuzzers_enum_coverage[compared])
+    #             s = f'ce:{p},'
+    #             sva = f'ce:{a_12_l[0]},'
+    #             swd = f'ce:{w_1:.1f},'
+    #             data[f'{baseline} vs {compared}'].append(a_12_v)
 
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_1[baseline], boxplot_data_first_1[compared])
-                s = f'c1:{p},'
-                sva = f'c1:{a_12_l[0]},'
-                swd = f'c1:{w_1:.1f},'
-                data[f'{baseline} vs {compared}'].append(a_12_v)
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_1[baseline], boxplot_data_first_1[compared])
+    #             s = f'c1:{p},'
+    #             sva = f'c1:{a_12_l[0]},'
+    #             swd = f'c1:{w_1:.1f},'
+    #             data[f'{baseline} vs {compared}'].append(a_12_v)
 
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_5[baseline], boxplot_data_first_5[compared])
-                s = f'c5:{p},'
-                sva = f'c5:{a_12_l[0]},'
-                swd = f'c5:{w_1:.1f},'
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_first_5[baseline], boxplot_data_first_5[compared])
+    #             s = f'c5:{p},'
+    #             sva = f'c5:{a_12_l[0]},'
+    #             swd = f'c5:{w_1:.1f},'
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_br[baseline][0], boxplot_data_br[compared][0])
-                s = f'br:{p},'
-                sva = f'br:{a_12_l[0]},'
-                swd = f'br:{w_1:.1f},'
-                data[f'{baseline} vs {compared}'].append(a_12_v)
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_br[baseline][0], boxplot_data_br[compared][0])
+    #             s = f'br:{p},'
+    #             sva = f'br:{a_12_l[0]},'
+    #             swd = f'br:{w_1:.1f},'
+    #             data[f'{baseline} vs {compared}'].append(a_12_v)
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_ln[baseline][0], boxplot_data_ln[compared][0])
-                s = f'ln:{p},'
-                sva = f'ln:{a_12_l[0]},'
-                swd = f'ln:{w_1:.1f},'
-                data[f'{baseline} vs {compared}'].append(a_12_v)
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_ln[baseline][0], boxplot_data_ln[compared][0])
+    #             s = f'ln:{p},'
+    #             sva = f'ln:{a_12_l[0]},'
+    #             swd = f'ln:{w_1:.1f},'
+    #             data[f'{baseline} vs {compared}'].append(a_12_v)
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_fn[baseline][0], boxplot_data_fn[compared][0])
-                s = f'fn:{p},'
-                sva = f'fn:{a_12_l[0]},'
-                swd = f'fn:{w_1:.1f},'
-                data[f'{baseline} vs {compared}'].append(a_12_v)
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_fn[baseline][0], boxplot_data_fn[compared][0])
+    #             s = f'fn:{p},'
+    #             sva = f'fn:{a_12_l[0]},'
+    #             swd = f'fn:{w_1:.1f},'
+    #             data[f'{baseline} vs {compared}'].append(a_12_v)
 
-                p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_in[baseline][0], boxplot_data_in[compared][0])
-                s = f'in:{p},'
-                sva = f'in:{a_12_l[0]},'
-                swd = f'in:{w_1:.1f},'
+    #             p, a_12_v, a_12_l, w_1 = get_stats_values(boxplot_data_in[baseline][0], boxplot_data_in[compared][0])
+    #             s = f'in:{p},'
+    #             sva = f'in:{a_12_l[0]},'
+    #             swd = f'in:{w_1:.1f},'
 
-                row[kkk.index(compared)+1]=s
-                rowva[kkk.index(compared)+1]=sva
-                rowwd[kkk.index(compared)+1]=swd
+    #             row[kkk.index(compared)+1]=s
+    #             rowva[kkk.index(compared)+1]=sva
+    #             rowwd[kkk.index(compared)+1]=swd
                 
 
 
-            table.add_row(*row)
-            tableva.add_row(*rowva)
-            tablewd.add_row(*rowwd)
-    console = Console()
-    console.print(table)
-    console.print(tableva)
-    console.print(tablewd)
+    #         table.add_row(*row)
+    #         tableva.add_row(*rowva)
+    #         tablewd.add_row(*rowwd)
+    # console = Console()
+    # console.print(table)
+    # console.print(tableva)
+    # console.print(tablewd)
 
 
 if __name__ == "__main__":

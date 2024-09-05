@@ -351,7 +351,8 @@ def load_crashes_for_regression(inputs_dirs, base_regression_path):
     return crashes
 
 def get_intersection_matrix(sets, sets_names, all_elements=[]):
-    if len(all_elements) == 0:
+     
+    if len(all_elements) == 0 and len(sets) > 0:
         all_elements = list(set.union(*sets))
 
     intersection_crash_matrix = pd.DataFrame(0, index=sets_names, columns=all_elements)
