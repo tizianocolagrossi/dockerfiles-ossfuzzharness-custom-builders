@@ -54,14 +54,14 @@ export CCC=$BKCCC
 export CFLAGS="$BKCFLAGS"
 
 rm ./xpdf/CMakeLists.txt
-mv $SRC/CMakeLists.txt.xpdf ./xpdf/CMakeLists.txt
+cp $SRC/CMakeLists.txt.xpdf ./xpdf/CMakeLists.txt
 
 # # # Make minor change in the CMakeFiles file.
 # # sed -i 's/#--- object files needed by XpdfWidget/add_library(testXpdfStatic STATIC $<TARGET_OBJECTS:xpdf_objs>)\n#--- object files needed by XpdfWidget/' ./xpdf/CMakeLists.txt
 # # sed -i 's/#--- pdftops/add_library(testXpdfWidgetStatic STATIC $<TARGET_OBJECTS:xpdf_widget_objs>\n $<TARGET_OBJECTS:splash_objs>\n $<TARGET_OBJECTS:xpdf_objs>\n ${FREETYPE_LIBRARY}\n ${FREETYPE_OTHER_LIBS})\n#--- pdftops/' ./xpdf/CMakeLists.txt
 
 # Build the project
-mkdir build && cd build
+mkdir -p build && cd build && rm -rf *
 export LD=$CXX
 cmake ../ -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
   -DOPI_SUPPORT=ON -DSPLASH_CMYK=ON -DMULTITHREADED=ON \
@@ -76,7 +76,7 @@ for fuzzer in zxdoc pdfload JBIG2; do
       -I../ -I../goo -I../fofi -I. -I../xpdf -I../splash
 done
 
-mkdir $SRC/corpus
+mkdir -p $SRC/corpus
 git clone https://github.com/unifuzz/seeds.git $SRC/seeds
 for f in $SRC/seeds/general_evaluation/pdf/* ; do
   s=$(sha1sum "$f" | awk '{print $1}')

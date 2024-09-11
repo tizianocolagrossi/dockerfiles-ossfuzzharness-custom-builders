@@ -22,6 +22,7 @@
 # CXXFLAGS="-ldbus-1 $CXXFLAGS"
 
 pushd $SRC/PcapPlusPlus
+git reset --hard
 git fetch --all -pP
 git checkout a817631
 git apply $SRC/fuzzers_makepile.patch
