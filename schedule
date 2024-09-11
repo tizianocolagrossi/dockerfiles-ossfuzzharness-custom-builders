@@ -1,5 +1,10 @@
 #! /bin/bash
 
+print_error() {
+    # ANSI escape code for red text
+    echo -e "\033[31m$1\033[0m"
+}
+
 RAMMAX=4g
 WRITEMAX=4g
 
@@ -33,7 +38,7 @@ convert_to_minutes() {
         "h") minutes=$((num * 60)) ;;
         "m") minutes=$((num)) ;;
         "s") minutes=$((num / 60)) ;;
-        *) echo "Invalid unit"; return 1 ;;
+        *) echo "Invalid unit"; exit 1 ;;
     esac
 
     echo "$minutes"
@@ -41,24 +46,35 @@ convert_to_minutes() {
 
 perform_task() {
     fuzzing_engine=$1
+    echo ""
+    echo :----------------------
+    echo : fuzzing_engine $1
     shift
     fuzzer=$1
+    echo : fuzzer         $1
     shift
     fuzzer_dir=$1
+    echo : fuzzer_dir     $1
     shift
     output_dir=$1
+    echo : output_dir     $1
     shift
     runs=$1
+    echo : runs           $1
     shift
     cor_start=$1
+    echo : cor_start      $1
     shift
     timeout=$1
+    echo : timeout        $1
     shift
     min_start=$1
+    echo : min_start      $1
+    echo :----------------------
     shift
     
     if [[ "$fuzzing_engine" != "afl" && "$fuzzing_engine" != "libafl" ]]; then
-        echo "Error: The variable must be either 'afl' or 'libafl', not $fuzzing_engine."
+        print_error "Error: The variable must be either 'afl' or 'libafl', not $fuzzing_engine."
         exit 1
     fi
 
@@ -69,12 +85,12 @@ perform_task() {
 
     ls $fuzzer_dir > /dev/null
     if [[ ! $? -eq 0 ]]; then
-        echo "ERROR $fuzzer_dir do not exist"
+        print_error "ERROR $fuzzer_dir do not exist"
         exit 1
     fi
     ls $fuzzer_dir/$fuzzer > /dev/null
     if [[ ! $? -eq 0 ]]; then
-        echo "ERROR $fuzzer not present in $fuzzer_dir"
+        print_error "ERROR $fuzzer not present in $fuzzer_dir"
         exit 1
     fi
     # Loop from core_start to core_end
@@ -91,24 +107,205 @@ perform_task() {
     done
 }
 
+in_round_w_named_output (){
+    sut_build_type=$1
+    shift
+    core_start=$1
+    shift
+    output_dir=$1
+    shift
+
+    perform_task $FUZZING_ENGINE $FUZZER $SUT_BASEPATH/$SUT/$sut_build_type $OUTPUT_BASEPATH/$output_dir $RUN $core_start $TIMEOUT $ROUND_TIME $*
+}
+
+in_round (){
+    sut_build_type=$1
+    shift
+    core_start=$1
+    shift
+
+    scheduling_date=$(date +%F)
+
+    in_round_w_named_output $sut_build_type $core_start "$SUT"_scheduled"$scheduling_date"_"$sut_build_type" $*
+}
+
+ROUND_COUNTER=0
+
 TIMEOUT="2m"
-DELTA="15"
+DELTA="2"
 RUN="1"
 
 TIME_UNIT=$(convert_to_minutes $TIMEOUT)
 TIME_UNIT=$(($TIME_UNIT+$DELTA))
 
+OUTPUT_BASEPATH=~/outputs
+SUT_BASEPATH=~/sut-docker/v0.2.6tmp6-aflppdouble
+
 # #             fuzzing-engine   fuzzer       fuzz_dir                          out_dir_prefx                                run core_start timeout  min_start additional_options
 # #perform_task afl|libafl       fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   0          5m       1         -c
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflpp                     $OUTPUT_BASEPATH/"$ROUND_SUT"_aflpp         $RUN 0 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetric     $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetric     $RUN 1 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetric++   $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetric++   $RUN 2 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetricbb++ $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetricbb++ $RUN 3 $TIMEOUT $ROUND_TIME 
 
-ROUND_TIME=$((TIME_UNIT * 0))
-perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflpp                     ~/outputs/bloaty-2020-05-25_aflpp_cmplog         $RUN 0 $TIMEOUT $ROUND_TIME 
-perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetric     ~/outputs/bloaty-2020-05-25_enumetric_cmplog     $RUN 1 $TIMEOUT $ROUND_TIME 
-perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetric++   ~/outputs/bloaty-2020-05-25_enumetric++_cmplog   $RUN 2 $TIMEOUT $ROUND_TIME 
-perform_task afl fuzz_target ~/sut-docker/bloaty-2020-05-25/aflppdouble_enumetricbb++ ~/outputs/bloaty-2020-05-25_enumetricbb++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME 
+next_round() {
+    ROUND_TIME=$((TIME_UNIT * $ROUND_COUNTER))
+    ((ROUND_COUNTER++))
+}
+
+# next_round
+# FUZZER=fuzz_target
+# FUZZING_ENGINE=afl
+# SUT=bloaty-2020-05-25
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=fuzz-read-print-write
+# FUZZING_ENGINE=afl
+# SUT=exiv2-v0.27.5
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=h2o-fuzzer-http2
+# FUZZING_ENGINE=afl
+# SUT=h2o-1e7344
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=jsoncpp_fuzzer
+# FUZZING_ENGINE=afl
+# SUT=jsoncpp-v1.9.5
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=xml
+# FUZZING_ENGINE=afl
+# SUT=libxml2-v2.9.2
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=FuzzTarget
+# FUZZING_ENGINE=afl
+# SUT=pcapplusplus-a817631
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
+
+# next_round
+# FUZZER=fuzz_pdfload
+# FUZZING_ENGINE=afl
+# SUT=xpdf-v4.00
+
+# # in_round sut_build_type core_start 
+# in_round aflpp                     0 
+# in_round aflppdouble_enumetric     1 
+# in_round aflppdouble_enumetric++   2 
+# in_round aflppdouble_enumetricbb++ 3 
 
 
-# ROUND_TIME=$((TIME_UNIT * 1))
-# perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric/ ~/outputs/mbedtls-e483a7_enumetric $RUN 0 $TIMEOUT $ROUND_TIME 
-# perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++_cmplog $RUN 3 $TIMEOUT $ROUND_TIME -c
-# perform_task libafl fuzz_dtlsserver ~/sut-docker/v0.2.6tmp0/mbedtls-e483a7/enumetric++/ ~/outputs/mbedtls-e483a7_enumetric++ $RUN 6 $TIMEOUT $ROUND_TIME 
+
+next_round
+FUZZER=fuzz_target
+FUZZING_ENGINE=afl
+SUT=bloaty-2020-05-25_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=fuzz-read-print-write
+FUZZING_ENGINE=afl
+SUT=exiv2-v0.27.5_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=h2o-fuzzer-http2
+FUZZING_ENGINE=afl
+SUT=h2o-1e7344_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=jsoncpp_fuzzer
+FUZZING_ENGINE=afl
+SUT=jsoncpp-v1.9.5_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=xml
+FUZZING_ENGINE=afl
+SUT=libxml2-v2.9.2_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=FuzzTarget
+FUZZING_ENGINE=afl
+SUT=pcapplusplus-a817631_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
+next_round
+FUZZER=fuzz_pdfload
+FUZZING_ENGINE=afl
+SUT=xpdf-v4.00_cmplog
+
+# in_round sut_build_type core_start 
+in_round aflpp                     0 
+in_round aflppdouble_enumetric     1 
+in_round aflppdouble_enumetric++   2 
+in_round aflppdouble_enumetricbb++ 3 
+
