@@ -71,9 +71,16 @@ make -j$(nproc)
 # Build fuzzers
 for fuzzer in zxdoc pdfload JBIG2; do
     cp ../../fuzz_$fuzzer.cc .
-    $CXX fuzz_$fuzzer.cc -o $OUT/fuzz_$fuzzer $CXXFLAGS $LIB_FUZZING_ENGINE \
-      ./xpdf/libtestXpdfStatic.a ./fofi/libfofi.a ./goo/libgoo.a ./splash/libsplash.a ./xpdf/libtestXpdfWidgetStatic.a $(find / -name libharfbuzz.so) /work/prefix/lib/libfreetype.a \
-      -I../ -I../goo -I../fofi -I. -I../xpdf -I../splash
+    # $CXX -o $OUT/fuzz_$fuzzer $LDFLAGS $CXXFLAGS $LIB_FUZZING_ENGINE \
+    #   ./fofi/libfofi.a ./splash/libsplash.a /work/prefix/lib/libfreetype.a $(find / -name libharfbuzz.a)  \
+    #   fuzz_$fuzzer.cc ./xpdf/libtestXpdfStatic.a  ./xpdf/libtestXpdfWidgetStatic.a ./goo/libgoo.a -I../ -I../goo -I../fofi -I. -I../xpdf -I../splash 
+    $CXX $CXXFLAGS -o $OUT/fuzz_$fuzzer \
+    -I../ -I../goo -I../fofi -I. -I../xpdf -I../splash \
+    fuzz_$fuzzer.cc \
+    # ./xpdf/libtestXpdfStatic.a ./fofi/libfofi.a ./goo/libgoo.a ./splash/libsplash.a ./xpdf/libtestXpdfWidgetStatic.a /work/prefix/lib/libfreetype.a -Wl,--copy-dt-needed-entries $(find / -name libharfbuzz.a)
+    -Wl,--start-group -lgraphite2 ./xpdf/libtestXpdfStatic.a ./xpdf/libtestXpdfWidgetStatic.a ./splash/libsplash.a ./fofi/libfofi.a /work/prefix/lib/libfreetype.a $(find / -name libharfbuzz.a) ./goo/libgoo.a $LIB_FUZZING_ENGINE -Wl,--end-group
+
+    
 done
 
 mkdir -p $SRC/corpus

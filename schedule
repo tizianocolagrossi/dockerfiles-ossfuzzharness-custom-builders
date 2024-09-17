@@ -131,8 +131,8 @@ in_round (){
 
 ROUND_COUNTER=0
 
-TIMEOUT="2m"
-DELTA="2"
+TIMEOUT="5m"
+DELTA="1"
 RUN="1"
 
 TIME_UNIT=$(convert_to_minutes $TIMEOUT)
@@ -238,10 +238,11 @@ FUZZING_ENGINE=afl
 SUT=bloaty-2020-05-25_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
 
 next_round
 FUZZER=fuzz-read-print-write
@@ -249,10 +250,12 @@ FUZZING_ENGINE=afl
 SUT=exiv2-v0.27.5_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
+
 
 next_round
 FUZZER=h2o-fuzzer-http2
@@ -260,10 +263,12 @@ FUZZING_ENGINE=afl
 SUT=h2o-1e7344_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
+
 
 next_round
 FUZZER=jsoncpp_fuzzer
@@ -271,10 +276,12 @@ FUZZING_ENGINE=afl
 SUT=jsoncpp-v1.9.5_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
+
 
 next_round
 FUZZER=xml
@@ -282,10 +289,12 @@ FUZZING_ENGINE=afl
 SUT=libxml2-v2.9.2_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
+
 
 next_round
 FUZZER=FuzzTarget
@@ -293,10 +302,12 @@ FUZZING_ENGINE=afl
 SUT=pcapplusplus-a817631_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+# in_round aflpp                      0 
+# in_round aflppdouble_enumetric      1 
+# in_round aflppdouble_enumetric++    2 
+# in_round aflppdouble_enumetricbb++  3 
+# in_round aflppdouble_enumetric_full 4 
+
 
 next_round
 FUZZER=fuzz_pdfload
@@ -304,8 +315,10 @@ FUZZING_ENGINE=afl
 SUT=xpdf-v4.00_cmplog
 
 # in_round sut_build_type core_start 
-in_round aflpp                     0 
-in_round aflppdouble_enumetric     1 
-in_round aflppdouble_enumetric++   2 
-in_round aflppdouble_enumetricbb++ 3 
+in_round aflpp                      0 
+in_round aflppdouble_enumetric      1 
+in_round aflppdouble_enumetric++    2 
+in_round aflppdouble_enumetricbb++  3 
+in_round aflppdouble_enumetric_full 4 
+
 

@@ -22,27 +22,24 @@ RUN /install_deps.sh && rm /install_deps.sh
 ARG enumetricversion=v0.2.4
 
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/Enumetric.git /src/Enumetric
+# RUN --mount=type=ssh \
+#   git clone git@github.com:tizianocolagrossi/Enumetric.git /src/Enumetric
 
-RUN --mount=type=ssh \
-  git -C /src/Enumetric checkout tags/$enumetricversion
+# RUN --mount=type=ssh \
+#   git -C /src/Enumetric checkout tags/$enumetricversion
 
-RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/LibAFL.git /src/LibAFL 
+# RUN --mount=type=ssh \
+#   git clone git@github.com:tizianocolagrossi/LibAFL.git /src/LibAFL 
 
-RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/LibAFL-0.12.0-Enumetric.git /src/LibAFL-0.12.0-Enumetric 
+# RUN --mount=type=ssh \
+#   git clone git@github.com:tizianocolagrossi/LibAFL-0.12.0-Enumetric.git /src/LibAFL-0.12.0-Enumetric 
 
-RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
-
-COPY checkout_build_enumetric.sh /root/
+# COPY checkout_build_enumetric.sh /root/
 # # Keep all steps in the same script to decrease the number of intermediate
 # # layes in docker file.
-RUN --mount=type=ssh \
-  /root/checkout_build_enumetric.sh
-RUN rm /root/checkout_build_enumetric.sh
+# RUN --mount=type=ssh \
+#   /root/checkout_build_enumetric.sh
+# RUN rm /root/checkout_build_enumetric.sh
 
 RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
 
@@ -134,6 +131,9 @@ RUN git clone https://github.com/AFLplusplus/AFLplusplus.git aflplusplus && \
     cd aflplusplus && \
     git checkout 9f6b012 
 
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
+
 # Do precompiles before copying other scripts for better cache efficiency.
 COPY precompile_aflpp /usr/local/bin/
 RUN precompile_aflpp
@@ -144,10 +144,11 @@ COPY compile \
     compile_aflppdouble_enumetric \
     compile_aflppdouble_enumetric++ \
     compile_aflppdouble_enumetricbb++ \
-    compile_baseline \
-    compile_enumetric \
-    compile_enumetric++ \
-    compile_enumetricbb++ \
+    compile_aflppdouble_enumetric_full \
+    # compile_baseline \
+    # compile_enumetric \
+    # compile_enumetric++ \
+    # compile_enumetricbb++ \
     compile_aflpp \
     targets_list \
     /usr/local/bin/

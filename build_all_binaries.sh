@@ -11,7 +11,7 @@ for project in ./sut-images/* ; do
 
     docker build -t osvaldo/$project_name $project_path/
 
-    for type in  aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++ ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++
+    for type in  aflppdouble_enumetric_full ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++ aflppdouble_enumetric_full
         cmd=compile_$type
         echo $type
         echo $cmd
