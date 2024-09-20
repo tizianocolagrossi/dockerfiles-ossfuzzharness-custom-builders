@@ -1,6 +1,26 @@
 #!/bin/bash 
 
+
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.00/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.01/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.02/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.03/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.04/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/enumetricbb++/fuzz_pdfload ; done;
+# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.05/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/enumetricbb++/fuzz_pdfload ; done;
+
+
+################################################################################################################################################################################################
+
 sysctl -w vm.mmap_rnd_bits=28
+
+export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+export AFL_SKIP_CPUFREQ=1
+export AFL_TRY_AFFINITY=1
+export AFL_FAST_CAL=1
+export AFL_CMPLOG_ONLY_NEW=1
+export AFL_FORKSRV_INIT_TMOUT=30000
+export AFL_IGNORE_PROBLEMS=1
+export AFL_IGNORE_UNKNOWN_ENVS=1
 
 export PATH=$OUT:$PATH
 cd $OUT
@@ -14,68 +34,68 @@ CRASHES=$FUZZ_OUT/crashes/
 # are slower than this.
 LIBAFL_FUZZER_ARGS="-t 5000"
 
-CMD_LINE_CCOV_ECOV="$OUT/$FUZZER $LIBAFL_FUZZER_ARGS -o $FUZZ_OUT -d -m --timeout-inputs $QUEUE_TEST_CASE"
-
 CMD_CCOV_MERGE="llvm-profdata-13 merge $OUT/default.profraw -o $OUT/default.profdata" 
 CMD_CCOV_EXPORT="llvm-cov-13 export --format=text --instr-profile $OUT/default.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json"
 
-# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout -t 15000 -- $OUT/$FUZZER @@
-# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --bucket-strategy first_5_frames -t 15000 -- $OUT/$FUZZER @@
-# afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --bucket-strategy first_frame -t 15000 -- $OUT/$FUZZER @@
-
-CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
+# remember in install_deps.sh vv
+# ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
+# CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 
+# entry unzip 
 pushd $FUZZ_OUT
 unzip  fuzz_out.zip
-popd
 
-# if [[ ! -s $FUZZ_OUT/llvmcov.json ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]] || [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]] || [[ ! -d $FUZZ_OUT/mapdump ]]; then
-#     # echo "INNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
-#     # if [[ ! -f $FUZZ_OUT/queue-preanalysis ]] ; then
+ls
 
-#     #     #check for element in queue that will lock
-#     #     for element in $QUEUE_TEST_CASE; do
-#     #         timeout 5 $OUT/$FUZZER -o $FUZZ_OUT $element
-#     #         ret=$?
-#     #         if [ $ret -eq 124 ] ; then
-#     #             mkdir -p $FUZZ_OUT/timeout-queue/
-#     #             mv $element $FUZZ_OUT/timeout-queue/
-#     #         fi 
-
-#     #         if [ $ret -ne 0 ] ; then
-#     #             mkdir -p $FUZZ_OUT/crashes-queue/
-#     #             mv $element $FUZZ_OUT/crashes-queue/
-#     #         fi 
-#     #     done
-
-#     # fi
-#     # ls /out/
-#     # touch $FUZZ_OUT/queue-preanalysis
-
-#     # bash -c "$CMD_LINE_CCOV_ECOV"
-# fi
-
-# if [[ ! -s $FUZZ_OUT/llvmcov.json ]]; then
-#     bash -c "$CMD_CCOV_MERGE"
-#     bash -c "$CMD_CCOV_EXPORT"
-# fi
-
-if [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]]; then
-    bash -c "$CMD_LINE_DEDUP_CRASH_5"
+if [ -d "./default" ]; then
+    echo "AFL like output detected moved."
+    # Move all files from the 'default' directory to the current directory
+    mv ./default/* . 
+    # Check if the move was successful
+    if [ $? -eq 0 ]; then
+        # Remove the 'default' directory
+        rm -rf "./default"
+    fi
 fi
+
+mkdir -p /src/AFLppDoubleMap
+ln -s $OUT/afl-enumetric-dumper-rt.o /src/AFLppDoubleMap/
+
+ls
+popd 
 
 if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
-    bash -c "$CMD_LINE_DEDUP_CRASH_1"
+    bash -c "$CMD_LINE_DEDUP_CRASH_1" &
+    dedup_1frame_pid=$!
 fi
 
-cd $FUZZ_OUT
-rm -r ./queue 
-rm -r ./crashes
+$OUT/afl-enumetric-dumper-bitmapshared &
+bitmapshared_pid=$!
 
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.00/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.01/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.02/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.03/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.04/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.05/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/enumetricbb++/fuzz_pdfload ; done;
+for testcase in $FUZZ_OUT/queue/*; do
+    testcase_name=$(basename "$testcase")
+    LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
+done
+kill $bitmapshared_pid
+
+llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
+llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
+
+python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
+
+wait $dedup_1frame_pid
+
+# on exit delete unnecessary data
+cd $FUZZ_OUT
+rm -rf ./queue 
+rm -rf ./hangs 
+rm -rf ./crashes
+rm -rf ./.synced
+rm -rf ./fuzzer_setup
+rm -rf ./fuzz_bitmap
+rm -rf ./cmdline
+rm -rf ./coverage_*.profraw
+rm -rf ./coverage.profdata
+
+chown -R $OUTUID:$OUTGID $FUZZ_OUT
