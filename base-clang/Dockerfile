@@ -24,7 +24,7 @@ ENV FUZZINTRO_OUTDIR=$SRC
 
 
 # Install newer cmake.
-ENV CMAKE_VERSION 3.24.2
+ENV CMAKE_VERSION=3.24.2
 RUN apt-get update && apt-get install -y wget sudo && \
     wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-$arch.sh && \
     chmod +x cmake-$CMAKE_VERSION-Linux-$arch.sh && \
@@ -44,11 +44,11 @@ RUN /root/create_dummy_libFuzzingEngine
 RUN rm /root/create_dummy_libFuzzingEngine
 
 # Setup the environment.
-ENV CC "clang-13"
-ENV CXX "clang++-13"
-ENV CCC "clang++-13"
+ENV CC="clang-13"
+ENV CXX="clang++-13"
+ENV CCC="clang++-13"
 
-ENV CFLAGS "-O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
+ENV CFLAGS="-O1 -fno-omit-frame-pointer -gline-tables-only -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION"
 #"-stdlib=libc++"
-ENV CXXFLAGS_EXTRA "" 
-ENV CXXFLAGS "$CFLAGS $CXXFLAGS_EXTRA"
+ENV CXXFLAGS_EXTRA="" 
+ENV CXXFLAGS="$CFLAGS $CXXFLAGS_EXTRA"

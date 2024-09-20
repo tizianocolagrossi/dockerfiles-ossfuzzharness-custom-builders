@@ -73,23 +73,23 @@ RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
 
 
 # Default build flags for various sanitizers.
-ENV SANITIZER_FLAGS_address "-fsanitize=address -fsanitize-address-use-after-scope"
-ENV SANITIZER_FLAGS_hwaddress "-fsanitize=hwaddress -fuse-ld=lld -Wno-unused-command-line-argument"
+ENV SANITIZER_FLAGS_address="-fsanitize=address -fsanitize-address-use-after-scope"
+ENV SANITIZER_FLAGS_hwaddress="-fsanitize=hwaddress -fuse-ld=lld -Wno-unused-command-line-argument"
 
 # Set of '-fsanitize' flags matches '-fno-sanitize-recover' + 'unsigned-integer-overflow'.
-ENV SANITIZER_FLAGS_undefined "-fsanitize=array-bounds,bool,builtin,enum,function,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unsigned-integer-overflow,unreachable,vla-bound,vptr -fno-sanitize-recover=array-bounds,bool,builtin,enum,function,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unreachable,vla-bound,vptr"
+ENV SANITIZER_FLAGS_undefined="-fsanitize=array-bounds,bool,builtin,enum,function,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unsigned-integer-overflow,unreachable,vla-bound,vptr -fno-sanitize-recover=array-bounds,bool,builtin,enum,function,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unreachable,vla-bound,vptr"
 
 # Don't include "function" since it is unsupported on aarch64.
-ENV SANITIZER_FLAGS_undefined_aarch64 "-fsanitize=array-bounds,bool,builtin,enum,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unsigned-integer-overflow,unreachable,vla-bound,vptr -fno-sanitize-recover=array-bounds,bool,builtin,enum,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unreachable,vla-bound,vptr"
+ENV SANITIZER_FLAGS_undefined_aarch64="-fsanitize=array-bounds,bool,builtin,enum,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unsigned-integer-overflow,unreachable,vla-bound,vptr -fno-sanitize-recover=array-bounds,bool,builtin,enum,integer-divide-by-zero,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,unreachable,vla-bound,vptr"
 
-ENV SANITIZER_FLAGS_memory "-fsanitize=memory -fsanitize-memory-track-origins"
+ENV SANITIZER_FLAGS_memory="-fsanitize=memory -fsanitize-memory-track-origins"
 
-ENV SANITIZER_FLAGS_thread "-fsanitize=thread"
+ENV SANITIZER_FLAGS_thread="-fsanitize=thread"
 
-ENV SANITIZER_FLAGS_introspector "-O0 -flto -fno-inline-functions -fuse-ld=gold -Wno-unused-command-line-argument"
+ENV SANITIZER_FLAGS_introspector="-O0 -flto -fno-inline-functions -fuse-ld=gold -Wno-unused-command-line-argument"
 
 # Do not use any sanitizers in the coverage build.
-ENV SANITIZER_FLAGS_coverage ""
+ENV SANITIZER_FLAGS_coverage=""
 
 # We use unsigned-integer-overflow as an additional coverage signal and have to
 # suppress error messages. See https://github.com/google/oss-fuzz/issues/910.
@@ -103,7 +103,7 @@ ENV COVERAGE_FLAGS="-fsanitize=fuzzer-no-link"
 
 # Use '-Wno-unused-command-line-argument' to suppress "warning: -ldl: 'linker' input unused"
 # messages which are treated as errors by some projects.
-ENV COVERAGE_FLAGS_coverage "-fprofile-instr-generate -fcoverage-mapping -pthread -Wl,--no-as-needed -Wl,-ldl -Wl,-lm -Wno-unused-command-line-argument"
+ENV COVERAGE_FLAGS_coverage="-fprofile-instr-generate -fcoverage-mapping -pthread -Wl,--no-as-needed -Wl,-ldl -Wl,-lm -Wno-unused-command-line-argument"
 
 # Default sanitizer, fuzzing engine and architecture to use.
 ENV SANITIZER="address"
@@ -121,7 +121,7 @@ ENV LIB_FUZZING_ENGINE_DEPRECATED="/usr/lib/libFuzzingEngine.a"
 ENV LIB_FUZZING_ENGINE="/usr/lib/libFuzzingEngine.a"
 
 # TODO: remove after tpm2 catchup.
-ENV FUZZER_LDFLAGS ""
+ENV FUZZER_LDFLAGS=""
 
 WORKDIR $SRC
 
@@ -138,8 +138,10 @@ RUN --mount=type=ssh \
 COPY precompile_aflpp /usr/local/bin/
 RUN precompile_aflpp
 
+
 COPY compile \
     compile_analysis \
+    compile_aflpp_analysis \
     compile_aflppdouble_baseline \
     compile_aflppdouble_enumetric \
     compile_aflppdouble_enumetric++ \
