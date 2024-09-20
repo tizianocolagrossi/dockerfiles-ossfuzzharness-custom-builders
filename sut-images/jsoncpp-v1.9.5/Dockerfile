@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-lafl0.12
+FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
 RUN apt-get update -y && apt-get install -y curl wget \
     binutils cmake ninja-build liblzma-dev libz-dev pkg-config autoconf libtool
 RUN git clone --depth 1 https://github.com/open-source-parsers/jsoncpp

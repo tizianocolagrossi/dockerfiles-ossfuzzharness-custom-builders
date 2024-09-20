@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-lafl0.12
+FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
 RUN apt-get update && apt-get install -y make autoconf automake libtool cmake zlib1g-dev pkg-config libssl-dev
 RUN git clone https://github.com/h2o/h2o
 WORKDIR h2o

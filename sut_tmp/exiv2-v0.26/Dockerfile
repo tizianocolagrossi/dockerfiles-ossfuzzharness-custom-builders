@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 ################################################################################
-FROM osvaldo/base-builder:v0.2.6tmp6-lafl0.12
+FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
 
 RUN git clone https://github.com/Exiv2/exiv2 exiv2
 RUN ./exiv2/ci/install_dependencies.sh

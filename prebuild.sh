@@ -3,7 +3,7 @@
 if [ -z "$1" ]
   then
     echo "Version of enumetric to build required"
-    echo "Example: $0 v0.2.4"
+    echo "Example: $0 v0.2.6tmp6-aflpp-doublem"
     exit 0
 fi
 
