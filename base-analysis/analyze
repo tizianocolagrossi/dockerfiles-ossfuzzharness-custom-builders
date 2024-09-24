@@ -59,10 +59,6 @@ if [ -d "./default" ]; then
     fi
 fi
 
-mkdir -p /src/AFLppDoubleMap
-ln -s $OUT/afl-enumetric-dumper-rt.o /src/AFLppDoubleMap/
-
-ls
 popd 
 
 if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
@@ -70,13 +66,15 @@ if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
     dedup_1frame_pid=$!
 fi
 
+export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
 $OUT/afl-enumetric-dumper-bitmapshared &
 bitmapshared_pid=$!
-
+echo $bitmapshared_pid
 for testcase in $FUZZ_OUT/queue/*; do
     testcase_name=$(basename "$testcase")
     LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
 done
+sleep 1
 kill $bitmapshared_pid
 
 llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
@@ -84,7 +82,7 @@ llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZE
 
 python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
 
-wait $dedup_1frame_pid
+# wait $dedup_1frame_pid
 
 # on exit delete unnecessary data
 cd $FUZZ_OUT

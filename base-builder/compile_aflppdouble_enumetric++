@@ -46,6 +46,9 @@ export AFL_IGNORE_PROBLEMS=1
 # No complain on unknown AFL environment variables
 export AFL_IGNORE_UNKNOWN_ENVS=1
 
+export AFL_USE_ASAN=1
+export AFL_USE_UBSAN=1
+
 # Provide a way to document the AFL++ options used in this build:
 echo
 echo AFL++ target compilation setup:

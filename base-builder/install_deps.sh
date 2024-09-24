@@ -47,6 +47,8 @@ apt-get update && \
         python3-setuptools \
         cargo \
         libgtk-3-dev \
+        g++-multilib \
+        libstdc++6 \
         zip
 
 case $(uname -m) in
