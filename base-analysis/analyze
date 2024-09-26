@@ -13,14 +13,17 @@
 
 sysctl -w vm.mmap_rnd_bits=28
 
-export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
-export AFL_SKIP_CPUFREQ=1
-export AFL_TRY_AFFINITY=1
-export AFL_FAST_CAL=1
-export AFL_CMPLOG_ONLY_NEW=1
-export AFL_FORKSRV_INIT_TMOUT=30000
-export AFL_IGNORE_PROBLEMS=1
-export AFL_IGNORE_UNKNOWN_ENVS=1
+# export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+# export AFL_SKIP_CPUFREQ=1
+# export AFL_TRY_AFFINITY=1
+# export AFL_FAST_CAL=1
+# export AFL_CMPLOG_ONLY_NEW=1
+# export AFL_FORKSRV_INIT_TMOUT=30000
+# export AFL_IGNORE_PROBLEMS=1
+# export AFL_IGNORE_UNKNOWN_ENVS=1
+
+# Destination directory where the symbolic links will be created
+for l in $DEDUP_BUILD/lib*; do echo $l; ln -s $(realpath $l) /lib/x86_64-linux-gnu/ ; done
 
 export PATH=$OUT:$PATH
 cd $OUT
@@ -30,17 +33,7 @@ shift
 
 QUEUE_TEST_CASE=$FUZZ_OUT/queue/*
 CRASHES=$FUZZ_OUT/crashes/
-# Ensure timeout is a bit larger than 1sec as some of the OSS-Fuzz fuzzers
-# are slower than this.
-LIBAFL_FUZZER_ARGS="-t 5000"
 
-CMD_CCOV_MERGE="llvm-profdata-13 merge $OUT/default.profraw -o $OUT/default.profdata" 
-CMD_CCOV_EXPORT="llvm-cov-13 export --format=text --instr-profile $OUT/default.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json"
-
-# remember in install_deps.sh vv
-# ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
-# CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
-CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 
 # entry unzip 
 pushd $FUZZ_OUT
@@ -50,46 +43,65 @@ ls
 
 if [ -d "./default" ]; then
     echo "AFL like output detected moved."
-    # Move all files from the 'default' directory to the current directory
-    mv ./default/* . 
-    # Check if the move was successful
-    if [ $? -eq 0 ]; then
-        # Remove the 'default' directory
-        rm -rf "./default"
-    fi
+    QUEUE_TEST_CASE="$FUZZ_OUT/default/queue/*"
+    rm -r $FUZZ_OUT/default/crashes/README.txt
+    CRASHES="$FUZZ_OUT/default/crashes/"
+    cp ./default/fuzzer_stats .
+    cp ./default/plot_data .
 fi
 
 popd 
 
+# Ensure timeout is a bit larger than 1sec as some of the OSS-Fuzz fuzzers
+# are slower than this.
+LIBAFL_FUZZER_ARGS="-t 5000"
+
+# remember in install_deps.sh vv
+# ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
+# CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
+# CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
-    bash -c "$CMD_LINE_DEDUP_CRASH_1" &
-    dedup_1frame_pid=$!
+    afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@
 fi
 
-echo "Running for enumprofile"
-export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
-$OUT/afl-enumetric-dumper-bitmapshared &
-bitmapshared_pid=$!
-echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
-sleep 2
 
-for testcase in $FUZZ_OUT/queue/*; do
-    echo "running $testcase"
-    testcase_name=$(basename "$testcase")
-    LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
-done
-sleep 2
-kill $bitmapshared_pid
+if [ "$COVERAGE_PROFILE" = "true" ]; then
+    echo "Running for enumprofile"
+    export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
+    $OUT/afl-enumetric-dumper-bitmapshared &
+    bitmapshared_pid=$!
+    echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
+    sleep 2
 
-llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
-llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
+    for testcase in $QUEUE_TEST_CASE; do
+        echo "running $testcase"
+        testcase_name=$(basename "$testcase")
+        LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
+    done
 
-python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
+    sleep 2
+    kill $bitmapshared_pid
 
-# wait $dedup_1frame_pid
+    # llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
+
+    ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
+    llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
+
+    llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
+
+    python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
+fi
+
+
+if [ -d "./default" ]; then
+    cp ./default/fuzzer_stats .
+    cp ./default/plot_data .
+fi
 
 # on exit delete unnecessary data
+chown -R $OUTUID:$OUTGID $FUZZ_OUT
 cd $FUZZ_OUT
+rm -rf ./default
 rm -rf ./queue 
 rm -rf ./hangs 
 rm -rf ./crashes
@@ -99,7 +111,7 @@ rm -rf ./fuzz_bitmap
 rm -rf ./cmdline
 rm -rf ./coverage_*.profraw
 rm -rf ./coverage.profdata
+rm -rf ./*.profraw.profdata
+rm -rf $OUT/*.profraw.profdata
 rm -rf $OUT/coverage_*.profraw
 rm -rf $OUT/coverage.profdata
-
-chown -R $OUTUID:$OUTGID $FUZZ_OUT
