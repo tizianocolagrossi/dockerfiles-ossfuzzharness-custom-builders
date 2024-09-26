@@ -66,15 +66,19 @@ if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
     dedup_1frame_pid=$!
 fi
 
+echo "Running for enumprofile"
 export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
 $OUT/afl-enumetric-dumper-bitmapshared &
 bitmapshared_pid=$!
-echo $bitmapshared_pid
+echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
+sleep 2
+
 for testcase in $FUZZ_OUT/queue/*; do
+    echo "running $testcase"
     testcase_name=$(basename "$testcase")
     LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
 done
-sleep 1
+sleep 2
 kill $bitmapshared_pid
 
 llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
@@ -95,5 +99,7 @@ rm -rf ./fuzz_bitmap
 rm -rf ./cmdline
 rm -rf ./coverage_*.profraw
 rm -rf ./coverage.profdata
+rm -rf $OUT/coverage_*.profraw
+rm -rf $OUT/coverage.profdata
 
 chown -R $OUTUID:$OUTGID $FUZZ_OUT
