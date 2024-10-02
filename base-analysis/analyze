@@ -64,6 +64,10 @@ if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
     afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@
 fi
 
+if [[ ! -d $FUZZ_OUT/afltriageout-first_3_frames6 ]]; then
+    afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_3_frames --report-formats=text,json --bucket-strategy first_3_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@
+fi
+
 
 if [ "$COVERAGE_PROFILE" = "true" ]; then
     echo "Running for enumprofile"
