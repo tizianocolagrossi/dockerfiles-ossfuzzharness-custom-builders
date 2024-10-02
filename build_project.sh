@@ -18,7 +18,7 @@ echo $project_path
 project_name=$(basename $project_path)
 echo $project_name
 
-docker build -t fuzzbuild/$project_name $project_path/
+docker build --no-cache -t osvaldo/$project_name $project_path/ 
 
 shift
 
@@ -32,6 +32,6 @@ for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ afl
         continue
     fi
     mkdir -p $build_dir
-    ##docker run -it --rm -v $build_dir:/out -t fuzzbuild/$project_name /bin/bash
-    docker run -it --rm -v $build_dir:/out -t fuzzbuild/$project_name $cmd
+    #docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name /bin/bash
+    docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name $cmd
 done 
