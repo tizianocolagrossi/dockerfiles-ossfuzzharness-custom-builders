@@ -79,15 +79,15 @@ for fuzzer in pdfload ; do # JBIG2 zxdoc
     
 done
 
-mkdir -p $SRC/corpus
-git clone https://github.com/unifuzz/seeds.git $SRC/seeds
-for f in $SRC/seeds/general_evaluation/pdf/* ; do
-  s=$(sha1sum "$f" | awk '{print $1}')
-  cp $f $SRC/corpus/$s
-done
+# mkdir -p $SRC/corpus
+# git clone https://github.com/unifuzz/seeds.git $SRC/seeds
+# for f in $SRC/seeds/general_evaluation/pdf/* ; do
+#   s=$(sha1sum "$f" | awk '{print $1}')
+#   cp $f $SRC/corpus/$s
+# done
 
-for fuzzer in  pdfload ; do ## zxdoc JBIG2
-  zip -j $OUT/fuzz_${fuzzer}_seed_corpus.zip $SRC/corpus/*
-done
+# for fuzzer in  pdfload ; do ## zxdoc JBIG2
+#   zip -j $OUT/fuzz_${fuzzer}_seed_corpus.zip $SRC/corpus/*
+# done
 # Copy over options files
 cp $SRC/fuzz_*.options $OUT/
