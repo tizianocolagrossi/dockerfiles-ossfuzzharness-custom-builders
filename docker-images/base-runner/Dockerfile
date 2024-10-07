@@ -16,7 +16,7 @@
 
 # Build rust stuff in its own image. We only need the resulting binaries.
 # Keeping the rust toolchain in the image wastes 1 GB.
-FROM osvaldo/oss-base-image as temp-runner-binary-builder
+FROM osvaldo/oss-base-image AS temp-runner-binary-builder
 
 RUN apt-get update && apt-get install -y cargo
 RUN cargo install rustfilt
