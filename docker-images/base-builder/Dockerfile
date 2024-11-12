@@ -151,6 +151,7 @@ COPY compile \
     # compile_enumetric \
     # compile_enumetric++ \
     # compile_enumetricbb++ \
+    compile_aflpp_manual \
     compile_aflpp \
     targets_list \
     /usr/local/bin/
