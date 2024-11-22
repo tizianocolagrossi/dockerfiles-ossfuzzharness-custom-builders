@@ -18,11 +18,18 @@ echo $project_path
 project_name=$(basename $project_path)
 echo $project_name
 
-docker build --no-cache -t osvaldo/$project_name $project_path/ 
+# docker build --no-cache -t osvaldo/$project_name $project_path/ 
+docker build -t osvaldo/$project_name $project_path/ 
+if [ $? -eq 0 ]; then
+    echo "Image created successfully."
+else
+    echo "Build of image failed."
+    exit 1
+fi
 
 shift
 
-for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++ aflppdouble_enumetric_full
+for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ aflpp aflpp_manual aflppdouble_baseline aflppdouble_enumetric aflppdouble_enumetric++ aflppdouble_enumetricbb++ aflppdouble_enumetric_full
     cmd=compile_$type
     echo $type
     echo $cmd
@@ -32,6 +39,6 @@ for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ afl
         continue
     fi
     mkdir -p $build_dir
-    #docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name /bin/bash
+    # docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name /bin/bash
     docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name $cmd
 done 
