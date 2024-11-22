@@ -70,12 +70,6 @@ ninja -C _builddir
 ninja -C _builddir install
 cd ..
 
-CC_SVD=$CC
-CXX_SVD=$CXX
-
-CFLAGS_SVD=$CFLAGS
-CXXFLAGS_SVD=$CXXFLAGS
-
 export CC=$CC_SVD
 export CXX=$CXX_SVD
 
@@ -154,14 +148,15 @@ PLUGINS="$PLUGIN_DIR/libgstcoreelements.a \
        $PLUGIN_DIR/libgsttheora.a \
        $PLUGIN_DIR/libgstogg.a"
 
+
 echo
 echo ">>>> BUILDING gst-discoverer"
 echo
 BUILD_CFLAGS="$CFLAGS `pkg-config --static --cflags $COMMON_DEPS $TARGET_DEPS`"
 BUILD_LDFLAGS="-Wl,-static `pkg-config --static --libs $COMMON_DEPS $TARGET_DEPS`"
 
-$CC $CFLAGS $BUILD_CFLAGS -fsanitize=fuzzer -c $SRC/gst-ci/fuzzing/gst-discoverer.c -o $SRC/gst-ci/fuzzing/gst-discoverer.o
-$CXX $CXXFLAGS -fsanitize=fuzzer \
+$CC $CFLAGS -fsanitize=fuzzer $BUILD_CFLAGS  -c $SRC/gst-ci/fuzzing/gst-discoverer.c -o $SRC/gst-ci/fuzzing/gst-discoverer.o
+$CXX -fsanitize=fuzzer $CXXFLAGS \
       -o $OUT/gst-discoverer \
       $PREDEPS_LDFLAGS \
       $SRC/gst-ci/fuzzing/gst-discoverer.o \
@@ -199,10 +194,13 @@ $CXX $CXXFLAGS -fsanitize=fuzzer \
 #       $LIB_FUZZING_ENGINE \
 #       -Wl,-Bdynamic
 
-echo
-echo ">>>> Installing seed corpus"
-echo
+# echo
+# echo ">>>> Installing seed corpus"
+# echo
 # FIXME : Sadly we apparently need to have the corpus downloaded in the
 #         Dockerfile and not here.
 
-cp $SRC/*_seed_corpus.zip $OUT
+# cp $SRC/*_seed_corpus.zip $OUT
+
+echo $CC
+echo $CXX

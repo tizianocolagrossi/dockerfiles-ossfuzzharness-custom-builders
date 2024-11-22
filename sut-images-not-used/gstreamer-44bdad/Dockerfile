@@ -15,13 +15,6 @@
 ################################################################################
 FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
 
-# RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" && \
-#    apt-get update && \
-#    apt-get install -y build-essential pkg-config bison flex gettext \
-#     libffi-dev liblzma-dev libvorbis-dev libtheora-dev libogg-dev zlib1g-dev libsystemd-dev libcairo2-dev ninja-build \
-#     python3-pip && \
-#   pip3 install meson==0.55.1
-
 RUN apt-get update && \
    apt-get install -y make autoconf automake libtool build-essential pkg-config bison flex gettext \
     libffi-dev liblzma-dev libtheora-dev libogg-dev zlib1g-dev libcairo2-dev \
@@ -37,11 +30,9 @@ RUN \
   git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-base.git /src/gst-plugins-base && \
   git clone https://gitlab.freedesktop.org/gstreamer/gst-ci.git /src/gst-ci
 
-ADD https://people.freedesktop.org/~bilboed/gst-discoverer_seed_corpus.zip $SRC
-
-RUN git clone https://gitlab.xiph.org/xiph/vorbis.git && \
-    git checkout bb4047de4c05712bf1fd49b9584c360b8e4e0adf && \
+RUN git clone https://gitlab.xiph.org/xiph/vorbis.git $SRC/vorbis/ && \
     cd $SRC/vorbis && \
+    git checkout bb4047de4c05712bf1fd49b9584c360b8e4e0adf && \
     ./autogen.sh && \
     ./configure --enable-static && \
     make clean && \
