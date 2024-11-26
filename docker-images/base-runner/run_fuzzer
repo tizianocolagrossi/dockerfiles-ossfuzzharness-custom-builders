@@ -152,7 +152,7 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   # AFL expects at least 1 file in the input dir.
   echo input > ${CORPUS_DIR}/input
 
-  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) $* -- $OUT/$FUZZER"
+  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) -- $OUT/$FUZZER $*" 
 
   echo afl++ setup:
   env|grep AFL_
