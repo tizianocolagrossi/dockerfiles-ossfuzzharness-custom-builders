@@ -231,52 +231,52 @@ make -j$(nproc) install
 # # export TEST_SAMPLES_PATH=$SRC/ffmpeg/fate-suite/
 # # make fate-rsync SAMPLES=$TEST_SAMPLES_PATH
 
-# # # Build the fuzzers.
-# # cd $SRC/ffmpeg
+# Build the fuzzers.
+cd $SRC/ffmpeg
 
-# # export TEMP_VAR_CODEC="AV_CODEC_ID_H264"
-# # export TEMP_VAR_CODEC_TYPE="VIDEO"
+export TEMP_VAR_CODEC="AV_CODEC_ID_H264"
+export TEMP_VAR_CODEC_TYPE="VIDEO"
 
-# # FFMPEG_FUZZERS_COMMON_FLAGS="-lfuzzer $FUZZER_LDFLAGS \
-# #     -L$FFMPEG_DEPS_PATH/lib \
-# #     -Llibavcodec -Llibavdevice -Llibavfilter -Llibavformat -Llibavresample \
-# #     -Llibavutil -Llibpostproc -Llibswscale -Llibswresample \
-# #     -Wl,--as-needed -Wl,-z,noexecstack -Wl,--warn-common \
-# #     -Wl,-rpath-link=libpostproc:libswresample:libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil:libavresample \
-# #     -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale \
-# #     -lavutil -ldl -lxcb -lxcb-shm -lxcb -lxcb-xfixes  -lxcb -lxcb-shape -lxcb \
-# #     -lX11 -lasound -lm -lbz2 -lz -pthread -lva-x11 -lXext -lXfixes \
-# #     -lx264 -lx265 -lvpx -lva -lvorbis -logg -lvorbisenc -lopus -lmp3lame \
-# #     -lfdk-aac -ltheora -ltheoraenc -ltheoradec -lvdpau -lva-drm -ldrm"
+FFMPEG_FUZZERS_COMMON_FLAGS="-lfuzzer $FUZZER_LDFLAGS \
+    -L$FFMPEG_DEPS_PATH/lib \
+    -Llibavcodec -Llibavdevice -Llibavfilter -Llibavformat -Llibavresample \
+    -Llibavutil -Llibpostproc -Llibswscale -Llibswresample \
+    -Wl,--as-needed -Wl,-z,noexecstack -Wl,--warn-common \
+    -Wl,-rpath-link=libpostproc:libswresample:libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil:libavresample \
+    -lavdevice -lavfilter -lavformat -lavcodec -lswresample -lswscale \
+    -lavutil -ldl -lxcb -lxcb-shm -lxcb -lxcb-xfixes  -lxcb -lxcb-shape -lxcb \
+    -lX11 -lasound -lm -lbz2 -lz -pthread -lva-x11 -lXext -lXfixes \
+    -lx264 -lx265 -lvpx -lva -lvorbis -logg -lvorbisenc -lopus -lmp3lame \
+    -lfdk-aac -ltheora -ltheoraenc -ltheoradec -lvdpau -lva-drm -ldrm"
 
-# # # Build fuzzers for audio formats.
-# # CODEC_TYPE="AUDIO"
-# # CODEC_NAMES="AV_CODEC_ID_AAC \
-# #   AV_CODEC_ID_AC3 \
-# #   AV_CODEC_ID_ADPCM_ADX \
-# #   AV_CODEC_ID_AMR_NB \
-# #   AV_CODEC_ID_AMR_WB \
-# #   AV_CODEC_ID_DTS \
-# #   AV_CODEC_ID_EAC3 \
-# #   AV_CODEC_ID_FLAC \
-# #   AV_CODEC_ID_GSM_MS \
-# #   AV_CODEC_ID_MP2 \
-# #   AV_CODEC_ID_MP3 \
-# #   AV_CODEC_ID_QCELP \
-# #   AV_CODEC_ID_SIPR \
-# #   AV_CODEC_ID_WAVPACK"
+# Build fuzzers for audio formats.
+CODEC_TYPE="AUDIO"
+CODEC_NAMES="AV_CODEC_ID_AAC \
+  AV_CODEC_ID_AC3 \
+  AV_CODEC_ID_ADPCM_ADX \
+  AV_CODEC_ID_AMR_NB \
+  AV_CODEC_ID_AMR_WB \
+  AV_CODEC_ID_DTS \
+  AV_CODEC_ID_EAC3 \
+  AV_CODEC_ID_FLAC \
+  AV_CODEC_ID_GSM_MS \
+  AV_CODEC_ID_MP2 \
+  AV_CODEC_ID_MP3 \
+  AV_CODEC_ID_QCELP \
+  AV_CODEC_ID_SIPR \
+  AV_CODEC_ID_WAVPACK"
 
-# # for codec in $CODEC_NAMES; do
-# #   fuzzer_name=ffmpeg_${CODEC_TYPE}_${codec}_fuzzer
+for codec in $CODEC_NAMES; do
+  fuzzer_name=ffmpeg_${CODEC_TYPE}_${codec}_fuzzer
 
-# #   $CC $CFLAGS -I${FFMPEG_DEPS_PATH}/include \
-# #       $SRC/ffmpeg/doc/examples/decoder_targeted.c \
-# #       -o $OUT/${fuzzer_name} \
-# #       -DFFMPEG_CODEC=${codec} -DFUZZ_FFMPEG_${CODEC_TYPE}= \
-# #       ${FFMPEG_FUZZERS_COMMON_FLAGS}
+  $CC $CFLAGS -I${FFMPEG_DEPS_PATH}/include \
+      $SRC/ffmpeg/doc/examples/decoding_encoding.c \
+      -o $OUT/${fuzzer_name} \
+      -DFFMPEG_CODEC=${codec} -DFUZZ_FFMPEG_${CODEC_TYPE}= \
+      ${FFMPEG_FUZZERS_COMMON_FLAGS}
 
-# #   echo -en "[libfuzzer]\nmax_len = 1000000\n" > $OUT/${fuzzer_name}.options
-# # done
+  echo -en "[libfuzzer]\nmax_len = 1000000\n" > $OUT/${fuzzer_name}.options
+done
 
 # # # Build fuzzers for subtitles formats.
 # # CODEC_TYPE="SUBTITLE"
@@ -343,7 +343,7 @@ make -j$(nproc) install
 # #   fuzzer_name=ffmpeg_${CODEC_TYPE}_${codec}_fuzzer
 
 # #   $CC $CFLAGS -I${FFMPEG_DEPS_PATH}/include \
-# #       $SRC/ffmpeg/doc/examples/decoder_targeted.c \
+# #       $SRC/ffmpeg/doc/examples/decode_video.c \
 # #       -o $OUT/${fuzzer_name} \
 # #       -DFFMPEG_CODEC=${codec} -DFUZZ_FFMPEG_${CODEC_TYPE}= \
 # #       ${FFMPEG_FUZZERS_COMMON_FLAGS}

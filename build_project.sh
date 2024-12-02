@@ -39,6 +39,6 @@ for type in  $@ ; do # analysis baseline enumetric enumetric++ enumetricbb++ afl
         continue
     fi
     mkdir -p $build_dir
-    # docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name /bin/bash
-    docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name $cmd
+    docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name /bin/bash
+    # docker run -it --rm -v $build_dir:/out -t osvaldo/$project_name $cmd
 done 

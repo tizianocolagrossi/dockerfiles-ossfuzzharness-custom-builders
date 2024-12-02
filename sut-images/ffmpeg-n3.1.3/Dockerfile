@@ -91,4 +91,4 @@ RUN git checkout 23264ee60baa66c5f627e05f1917ba99d422d258
 
 
 WORKDIR $SRC
-COPY build.sh $SRC/
+COPY build.sh decoder_targeted.c $SRC/
