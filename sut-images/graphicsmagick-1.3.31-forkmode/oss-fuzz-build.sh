@@ -87,3 +87,5 @@ echo "=== Building GraphicsMagick..."
 PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include/libpng16 -I$WORK/include/freetype2 -I$WORK/include" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --prefix="$WORK" --enable-static --disable-shared  --without-perl --with-quantum-depth=16
 make "-j$(nproc)"
 make install
+
+cp /bin/gm "${OUT}/"
