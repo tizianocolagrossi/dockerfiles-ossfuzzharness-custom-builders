@@ -88,4 +88,4 @@ PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPP
 make "-j$(nproc)"
 make install
 
-cp /bin/gm "${OUT}/"
+cp $WORK/bin/gm "${OUT}/"
