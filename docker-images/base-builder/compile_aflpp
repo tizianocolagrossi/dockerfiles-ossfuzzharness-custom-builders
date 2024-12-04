@@ -147,29 +147,29 @@ if [ "${BUILD_UID-0}" -ne "0" ]; then
     su -c "$COPY_SOURCES_CMD" builder 2>/dev/null || true
   fi
 else
-  {
-    export AFL_LLVM_CMPLOG=1
-    $BUILD_CMD
-    if [ "$SANITIZER" = "coverage" ]; then
-      # Some directories have broken symlinks (e.g. honggfuzz), ignore the errors.
-      $COPY_SOURCES_CMD 2>/dev/null || true
-    fi
-    touch $OUT/afl_cmplog.txt
-    unset AFL_LLVM_CMPLOG
-  }
+  # {
+  #   export AFL_LLVM_CMPLOG=1
+  #   $BUILD_CMD
+  #   if [ "$SANITIZER" = "coverage" ]; then
+  #     # Some directories have broken symlinks (e.g. honggfuzz), ignore the errors.
+  #     $COPY_SOURCES_CMD 2>/dev/null || true
+  #   fi
+  #   touch $OUT/afl_cmplog.txt
+  #   unset AFL_LLVM_CMPLOG
+  # }
   
 
-  for binary in $(find $OUT/ -executable -type f); do
-    [[ "$binary" != *.so ]] || continue
-    [[ $(basename "$binary") != jazzer_driver* ]] || continue
-    file "$binary" | grep -e ELF -e "shell script" > /dev/null 2>&1 || continue
-    grep "LLVMFuzzerTestOneInput" "$binary" > /dev/null 2>&1 || continue
+  # for binary in $(find $OUT/ -executable -type f); do
+  #   [[ "$binary" != *.so ]] || continue
+  #   [[ $(basename "$binary") != jazzer_driver* ]] || continue
+  #   file "$binary" | grep -e ELF -e "shell script" > /dev/null 2>&1 || continue
+  #   grep "LLVMFuzzerTestOneInput" "$binary" > /dev/null 2>&1 || continue
 
-    basename "$binary"
-    mv $binary $binary.cmplog
-  done
+  #   basename "$binary"
+  #   mv $binary $binary.cmplog
+  # done
 
-  env
+  # env
   {
     $BUILD_CMD
     if [ "$SANITIZER" = "coverage" ]; then

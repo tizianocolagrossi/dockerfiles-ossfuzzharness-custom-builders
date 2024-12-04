@@ -14,4 +14,14 @@
 # limitations under the License.
 #
 ################################################################################
+
 ./fuzzing/oss-fuzz-build.sh
+cp $WORK/bin/gm "${OUT}/"
+
+export AFL_LLVM_CMPLOG=1
+
+./fuzzing/oss-fuzz-build.sh
+cp $WORK/bin/gm "${OUT}/gm.cmplog"
+
+touch $OUT/afl_cmplog.txt
+unset AFL_LLVM_CMPLOG
