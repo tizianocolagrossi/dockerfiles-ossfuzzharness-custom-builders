@@ -25,3 +25,27 @@ cp $WORK/bin/gm "${OUT}/gm.cmplog"
 
 touch $OUT/afl_cmplog.txt
 unset AFL_LLVM_CMPLOG
+
+ldd "$WORK/bin/gm.cmplog" | while read -r line; do
+    # Only process lines with a valid path (those that are not "not found")
+    # echo $line
+    if [[ "$line" == *" => "* ]]; then
+        echo "Copy $line"
+        second_part=$(echo "$line" | cut -d'>' -f2-)
+        file_path="${second_part%% (*}"
+        echo "cp $file_path in out"
+        cp $file_path $OUT/
+    fi
+done
+
+ldd "$WORK/bin/gm" | while read -r line; do
+    # Only process lines with a valid path (those that are not "not found")
+    # echo $line
+    if [[ "$line" == *" => "* ]]; then
+        echo "Copy $line"
+        second_part=$(echo "$line" | cut -d'>' -f2-)
+        file_path="${second_part%% (*}"
+        echo "cp $file_path in out"
+        cp $file_path $OUT/
+    fi
+done
