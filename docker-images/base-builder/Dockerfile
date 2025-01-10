@@ -139,7 +139,8 @@ COPY precompile_aflpp /usr/local/bin/
 RUN precompile_aflpp
 
 
-COPY compile \
+COPY compile_plain \
+    compile_plain_sanitized \
     compile_analysis \
     compile_aflpp_analysis \
     compile_aflppdouble_baseline \
