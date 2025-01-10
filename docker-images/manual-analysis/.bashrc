@@ -127,10 +127,19 @@ bt() {
     else
         r "$@"
         gdbc
+        rm ./core
     fi
 }
 
 set-sut() {
     export SUT=$1
 }
+
+cd /work
+./load-libs.sh
+./load-src.sh
+cd /out/
+echo "Remember to set the sut under analysis using set-sut <sut-path>."
+echo "  use bt <crash path> to get the back trace"
+echo "  use dgba <crash path> to debug the crash"
 

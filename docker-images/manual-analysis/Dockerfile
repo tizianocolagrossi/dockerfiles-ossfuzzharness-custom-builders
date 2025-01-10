@@ -35,7 +35,12 @@ COPY --from=temp-runner-binary-builder /root/.cargo/bin/rustfilt /usr/local/bin
 COPY --from=base-clang /usr/bin/llvm-cov-13 \
      /usr/bin/llvm-profdata-13 \
      /usr/bin/llvm-symbolizer-13 \
-     /usr/local/bin/
+     /usr/local/bin/ 
+
+COPY --from=base-clang /lib/x86_64-linux-gnu/libLLVM-13.so.1 \
+     /lib/x86_64-linux-gnu/libedit.so.2 \
+     /lib/x86_64-linux-gnu/libbsd.so.0 \
+     /lib/x86_64-linux-gnu/
 
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
@@ -43,6 +48,8 @@ RUN /install_deps.sh && rm /install_deps.sh
 ENV ASAN_OPTIONS="abort_on_error=1:disable_coredump=0:unmap_shadow_on_exit=1:alloc_dealloc_mismatch=0:allocator_may_return_null=1:allocator_release_to_os_interval_ms=500:check_malloc_usable_size=0:detect_container_overflow=1:detect_odr_violation=0:detect_leaks=1:detect_stack_use_after_return=1:fast_unwind_on_fatal=0:handle_abort=1:handle_segv=1:handle_sigill=1:max_uar_stack_size_log=16:print_scariness=1:quarantine_size_mb=10:strict_memcmp=1:strip_path_prefix=/workspace/:symbolize=1:use_sigaltstack=1:dedup_token_length=3"
 ENV MSAN_OPTIONS="abort_on_error=1:disable_coredump=0:print_stats=1:strip_path_prefix=/workspace/:symbolize=1:dedup_token_length=3"
 ENV UBSAN_OPTIONS="abort_on_error=1:disable_coredump=0:print_stacktrace=1:print_summary=1:silence_unsigned_overflow=1:strip_path_prefix=/workspace/:symbolize=1:dedup_token_length=3"
+
+ENV ASAN_SYMBOLIZER_PATH=/usr/local/bin/llvm-symbolizer-13
 
 ENV IN=/in
 RUN mkdir -p $IN
