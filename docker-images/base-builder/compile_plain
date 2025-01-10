@@ -107,8 +107,5 @@ if [ "${BUILD_UID-0}" -ne "0" ]; then
   fi
 else
   $BUILD_CMD
-  if [ "$SANITIZER" = "coverage" ]; then
-    # Some directories have broken symlinks (e.g. honggfuzz), ignore the errors.
-    $COPY_SOURCES_CMD 2>/dev/null || true
-  fi
+  $COPY_SOURCES_CMD 2>/dev/null || true
 fi
