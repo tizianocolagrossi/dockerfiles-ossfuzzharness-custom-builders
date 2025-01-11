@@ -13,7 +13,9 @@
 # limitations under the License.
 #
 ################################################################################
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
+
+RUN apt-get clean
 
 RUN apt-get update && apt-get install -y mercurial automake autopoint cmake libtool nasm pkg-config po4a doxygen libharfbuzz-dev libsharp-dev python3-pip 
 RUN pip3 install meson==0.55 ninja

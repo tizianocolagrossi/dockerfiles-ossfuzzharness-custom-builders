@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 
 RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" 
 RUN apt-get update && \

@@ -1,4 +1,4 @@
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem-lafl0.12
+FROM osvaldo/base-builder:latest-lafl0.12
 RUN apt-get update && \
     apt-get install -y make autoconf automake libtool zlib1g-dev
 

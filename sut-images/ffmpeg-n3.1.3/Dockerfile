@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 
 RUN apt-get install -y make autoconf automake libtool build-essential \
     libass-dev libfreetype6-dev libsdl1.2-dev \

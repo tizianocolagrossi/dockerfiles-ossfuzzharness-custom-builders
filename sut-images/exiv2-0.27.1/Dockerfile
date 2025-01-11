@@ -1,4 +1,4 @@
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 
 RUN git clone https://github.com/Exiv2/exiv2 $SRC/exiv2 && \
     cd $SRC/exiv2 && \

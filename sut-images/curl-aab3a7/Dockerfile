@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 
 RUN git clone https://github.com/curl/curl.git /src/curl
 WORKDIR /src/curl

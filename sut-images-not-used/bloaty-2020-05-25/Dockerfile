@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 RUN apt-get update && apt-get install -y cmake ninja-build g++ libz-dev
 RUN git clone --depth 1 https://github.com/google/bloaty.git bloaty
 WORKDIR bloaty

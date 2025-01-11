@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/base-builder:v0.2.6tmp6-aflpp-doublem
+FROM osvaldo/base-builder:latest
 
 RUN apt-get update && apt-get install -y make autoconf automake libpangocairo-1.0-0 libpango1.0-dev libtool libxml2-dev libcairo2-dev
 RUN git clone https://github.com/imagemagick/imagemagick $SRC/imagemagick
