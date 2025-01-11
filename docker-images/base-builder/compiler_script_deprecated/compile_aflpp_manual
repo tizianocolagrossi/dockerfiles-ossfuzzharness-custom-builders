@@ -21,21 +21,17 @@
 # AFL++ setup
 echo "Copying precompiled AFL++"
 
-# Copy AFLppDoubleMap tools necessary for fuzzing.
-pushd $SRC/AFLppDoubleMap > /dev/null
+# Copy AFL++ tools necessary for fuzzing.
+pushd $SRC/aflplusplus > /dev/null
 
 cp -f libAFLDriver.a $LIB_FUZZING_ENGINE
 
 # Some important projects include libraries, copy those even when they don't
 # start with "afl-". Use "sort -u" to avoid a warning about duplicates.
-
 ls afl-* *.txt *.a *.o *.so | sort -u | xargs cp -t $OUT
-export CC="$SRC/AFLppDoubleMap/afl-clang-fast"
-export CXX="$SRC/AFLppDoubleMap/afl-clang-fast++"
-export CCC="$SRC/AFLppDoubleMap/afl-clang-fast++"
-
-export CFLAGS="-fprofile-instr-generate -fcoverage-mapping $CFLAGS "
-export CXXFLAGS="-fprofile-instr-generate -fcoverage-mapping $CXXFLAGS"
+export CC="$SRC/aflplusplus/afl-clang-fast"
+export CXX="$SRC/aflplusplus/afl-clang-fast++"
+export CCC="$SRC/aflplusplus/afl-clang-fast++"
 
 # Set sane AFL++ environment defaults:
 # Be quiet, otherwise this can break some builds.
@@ -46,6 +42,9 @@ export ASAN_OPTIONS="detect_leaks=0:symbolize=0:detect_odr_violation=0:abort_on_
 export AFL_IGNORE_PROBLEMS=1
 # No complain on unknown AFL environment variables
 export AFL_IGNORE_UNKNOWN_ENVS=1
+
+# export AFL_USE_ASAN=1
+# export AFL_USE_UBSAN=1
 
 # Provide a way to document the AFL++ options used in this build:
 echo
@@ -100,11 +99,9 @@ fi
 # See https://github.com/rust-fuzz/libfuzzer/blob/master/build.rs#L12.
 export CUSTOM_LIBFUZZER_PATH="$LIB_FUZZING_ENGINE_DEPRECATED"
 export CUSTOM_LIBFUZZER_STD_CXX=c++
-
-export ENUMETRIC_DUMP=1
-
-export CFLAGS="-fsanitize=fuzzer $CFLAGS $SANITIZER_FLAGS $COVERAGE_FLAGS"
-export CXXFLAGS="-fsanitize=fuzzer $CFLAGS $CXXFLAGS_EXTRA"
+# -fsanitize=fuzzer
+export CFLAGS=" -fno-sanitize-coverage=trace-cmp -g  -O0 $CFLAGS $SANITIZER_FLAGS $COVERAGE_FLAGS"
+export CXXFLAGS="-fno-sanitize-coverage=trace-cmp -g -O0 $CFLAGS $CXXFLAGS_EXTRA"
 
 
 if [ "$SANITIZER" = "undefined" ]; then
@@ -145,16 +142,9 @@ if [ "${BUILD_UID-0}" -ne "0" ]; then
   adduser -u $BUILD_UID --disabled-password --gecos '' builder
   chown -R builder $SRC $OUT $WORK
   su -c "$BUILD_CMD" builder
-  if [ "$SANITIZER" = "coverage" ]; then
-    # Some directories have broken symlinks (e.g. honggfuzz), ignore the errors.
-    su -c "$COPY_SOURCES_CMD" builder 2>/dev/null || true
-  fi
-else
-
-  $BUILD_CMD
-  if [ "$SANITIZER" = "coverage" ]; then
-    # Some directories have broken symlinks (e.g. honggfuzz), ignore the errors.
-    $COPY_SOURCES_CMD 2>/dev/null || true
-  fi
   
+  su -c "$COPY_SOURCES_CMD" builder 2>/dev/null || true
+else
+  $BUILD_CMD
+  $COPY_SOURCES_CMD 2>/dev/null || true
 fi
