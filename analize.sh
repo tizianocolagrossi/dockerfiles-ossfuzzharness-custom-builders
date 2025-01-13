@@ -1,18 +1,66 @@
 #! /bin/bash
 
 # usage analyze.sh fuzzer_campaign_out fuzzer_analysis_build
+
+# Usage function
+usage() {
+    echo "Usage: $0 [-c -s] -o <output_path>  <coverage-build_path> <deduplication-build_path>"
+    echo "  -c    request code coverage data"
+    echo "  -e    request enum coverage data"
+    echo "  -o    output directory"
+    echo "  <coverage-build_path> Path to the fuzzer used to collect coverage data"
+    echo "  <deduplication-build_path> Path to the suzzer used to deduplicat crashes"
+    exit 1
+}
+
+# Get the current user's UID
+current_uid=$(id -u)
+
+# Default values
 coverage_profile_enabled=false
-if [ "$#" -ne 3 ]
-then
-  echo "USAGE: $0 <fuzzer-out-dir> <fuzzer-analysis-build> <fuzzer-deduplication-build-w-sanitizers>"
-  exit 1
+enum_profile_enabled=false
+output_dir=""
+
+
+# Parse options
+while getopts "ceo:" opt; do
+    case $opt in
+        c) coverage_profile_enabled="true" ;;
+        e) enum_profile_enabled="true" ;;
+        o) output_dir="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+
+# Shift processed options
+shift $((OPTIND - 1))
+
+
+# Remaining argument is the project path
+if [[ $# -eq 2 ]]; then
+  FUZZER_BUILD_ANALYSIS=$(realpath $1)
+  FUZZER_BUILD_DEDUP=$(realpath $2)
+else
+    echo "Error: You must specify a project path."
+    usage
 fi
 
-FUZZ_OUT=$1
+# Validate inputs
+if [[ -z "$output_dir" ]]; then
+    echo "Error: options (-o) is required."
+    usage
+fi
 
-FUZZER_BUILD_ANALYSIS=$(realpath $2)
+if [[ ! -e "$FUZZER_BUILD_ANALYSIS" ]]; then
+    echo "Error: The specified project path does not exist: $FUZZER_BUILD_ANALYSIS"
+    exit 1
+fi
 
-FUZZER_BUILD_DEDUP=$(realpath $3)
+
+if [[ ! -e "$FUZZER_BUILD_DEDUP" ]]; then
+    echo "Error: The specified project path does not exist : $FUZZER_BUILD_DEDUP"
+    exit 1
+fi
 
 
 FUZZER=$(basename $FUZZER_BUILD_ANALYSIS)
@@ -25,12 +73,22 @@ if [ $FUZZER_DEDUP -ne $FUZZER ] ; then
   exit 1
 fi
 
-# docker run -it --rm --shm-size=1gb -v $FUZZ_OUT:/fuzz_out -v $DEDUP_BUILD:/dedup_build -v $ANALYSIS_BUILD:/out -e FUZZ_OUT_REAL_PATH=$FUZZ_OUT -e OUTUID=$(id -u) -e OUTGID=$(id -g) -t osvaldo/oss-base-analysis analyze $FUZZER
+# Display selected options
+echo "Code coverage requested: $coverage_profile_enabled"
+echo "Enum coverage requested: $enum_profile_enabled"
+echo "Output dir: $output_dir"
 
-docker run -it --rm --shm-size=1gb -v $FUZZ_OUT:/fuzz_out -v $DEDUP_BUILD:/dedup_build -v $ANALYSIS_BUILD:/out -e FUZZ_OUT_REAL_PATH=$FUZZ_OUT -e COVERAGE_PROFILE=$coverage_profile_enabled -e OUTUID=$(id -u) -e OUTGID=$(id -g) -t osvaldo/oss-base-analysis analyze $FUZZER
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.00/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.01/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.02/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.03/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.04/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.05/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/enumetricbb++/fuzz_pdfload ; done;
+echo "Fuzzer: $FUZZER"
+echo "Fuzzer build for deduplication: $DEDUP_BUILD"
+echo "Fuzzer build for coverage: $ANALYSIS_BUILD"
+echo ""
+
+docker run -it --rm --shm-size=1gb \
+  -v $output_dir:/fuzz_out \
+  -v $DEDUP_BUILD:/dedup_build \
+  -v $ANALYSIS_BUILD:/out \
+  -e FUZZ_OUT_REAL_PATH=$output_dir \
+  -e COVERAGE_PROFILE=$coverage_profile_enabled  \
+  -e ENUMERATION_PROFILE=$enum_profile_enabled  \
+  -e OUTUID=$(id -u) -e OUTGID=$(id -g) \
+  -t osvaldo/oss-base-analysis analyze $FUZZER

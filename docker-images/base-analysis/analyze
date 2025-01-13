@@ -1,16 +1,5 @@
 #!/bin/bash 
 
-
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.00/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.00/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.01/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.01/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.02/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.02/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.03/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.03/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.04/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.04/enumetricbb++/fuzz_pdfload ; done;
-# for d in /home/tiziano/Documents/new-docker-run/new_evluation-v0.2.6tmp3/xpdf-v4.00/regression_v4.05/* ; do ./analize.sh $d /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/analysis/fuzz_pdfload /home/tiziano/sut-docker/v0.2.6tmp6/xpdf-v4.05/enumetricbb++/fuzz_pdfload ; done;
-
-
-################################################################################################################################################################################################
-
 sysctl -w vm.mmap_rnd_bits=28
 
 # export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
@@ -21,6 +10,26 @@ sysctl -w vm.mmap_rnd_bits=28
 # export AFL_FORKSRV_INIT_TMOUT=30000
 # export AFL_IGNORE_PROBLEMS=1
 # export AFL_IGNORE_UNKNOWN_ENVS=1
+
+# Destination directory where the symbolic links will be created
+DEST_DIR="/lib/x86_64-linux-gnu/"
+
+# Iterate over all files in the provided directory that start with 'lib'
+for file in $SOURCE_DIR/lib*; do
+  if [ -f "$file" ]; then
+    # Extract the base name of the file
+    base_name=$(basename "$file")
+
+    # Check if the symbolic link already exists
+    if [ ! -e "$DEST_DIR/$base_name" ]; then
+      # Create a symbolic link in the destination directory
+      ln -s "$file" "$DEST_DIR/$base_name"
+      echo "Created symlink for $base_name"
+    else
+      echo "Symlink for $base_name already exists"
+    fi
+  fi
+done
 
 # Destination directory where the symbolic links will be created
 for l in $DEDUP_BUILD/lib*; do echo $l; ln -s $(realpath $l) /lib/x86_64-linux-gnu/ ; done
@@ -58,8 +67,6 @@ LIBAFL_FUZZER_ARGS="-t 5000"
 
 # remember in install_deps.sh vv
 # ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
-# CMD_LINE_DEDUP_CRASH_5="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
-# CMD_LINE_DEDUP_CRASH_1="afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@"
 if [[ ! -d $FUZZ_OUT/afltriageout-first_frame ]]; then
     afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_frame --report-formats=text,json --bucket-strategy first_frame -t 15000 -- $DEDUP_BUILD/$FUZZER @@
 fi
@@ -72,13 +79,16 @@ if [[ ! -d $FUZZ_OUT/afltriageout-first_5_frames ]]; then
     afltriage -i $CRASHES -o $FUZZ_OUT/afltriageout-first_5_frames --report-formats=text,json --bucket-strategy first_5_frames -t 15000 -- $DEDUP_BUILD/$FUZZER @@
 fi
 
-if [ "$COVERAGE_PROFILE" = "true" ]; then
-    echo "Running for enumprofile"
-    export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
-    $OUT/afl-enumetric-dumper-bitmapshared &
-    bitmapshared_pid=$!
-    echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
-    sleep 2
+if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
+    
+    if [ "$ENUMERATION_PROFILE" = "true" ]; then
+      echo "Running for enumprofile"
+      export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
+      $OUT/afl-enumetric-dumper-bitmapshared &
+      bitmapshared_pid=$!
+      echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
+      sleep 2
+    fi
 
     for testcase in $QUEUE_TEST_CASE; do
         echo "running $testcase"
@@ -86,17 +96,20 @@ if [ "$COVERAGE_PROFILE" = "true" ]; then
         LLVM_PROFILE_FILE="coverage_$testcase_name.profraw" $OUT/$FUZZER $testcase
     done
 
-    sleep 2
-    kill $bitmapshared_pid
+    if [ "$ENUMERATION_PROFILE" = "true" ]; then
+      sleep 2
+      kill $bitmapshared_pid
+    fi
 
-    # llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
+    if [ "$COVERAGE_PROFILE" = "true" ]; then
+      # llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
+      ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
+      llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
 
-    ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
-    llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
+      llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
 
-    llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
-
-    python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
+      python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
+    fi
 fi
 
 
@@ -117,7 +130,7 @@ rm -rf ./fuzzer_setup
 rm -rf ./fuzz_bitmap
 rm -rf ./cmdline
 rm -rf ./coverage_*.profraw
-rm -rf ./coverage.profdata
+# rm -rf ./coverage.profdata
 rm -rf ./*.profraw.profdata
 rm -rf $OUT/*.profraw.profdata
 rm -rf $OUT/coverage_*.profraw
