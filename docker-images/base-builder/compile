@@ -22,28 +22,32 @@
 echo "Copying precompiled AFL++"
 
 # Copy AFLppDoubleMap tools necessary for fuzzing.
-pushd $SRC/AFLppDoubleMap > /dev/null
-
-cp -f libAFLDriver.a $LIB_FUZZING_ENGINE
-
-# Some important projects include libraries, copy those even when they don't
-# start with "afl-". Use "sort -u" to avoid a warning about duplicates.
-ls afl-* *.txt *.a *.o *.so | sort -u | xargs cp -t $OUT
-
-
 if [ "${COMPILER:-aflpp}" == "clang" ] ; then 
     echo "Do nothing sonce clang is default"
+    pushd "$SRC"/aflplusplus  > /dev/null
 fi
 if [ "${COMPILER:-aflpp}" == "aflpp" ] ; then 
+    pushd "$SRC"/aflplusplus  > /dev/null
+    cp -f libAFLDriver.a $LIB_FUZZING_ENGINE
+    
     export CC="$SRC/aflplusplus/afl-clang-fast"
     export CXX="$SRC/aflplusplus/afl-clang-fast++"
     export CCC="$SRC/aflplusplus/afl-clang-fast++"
+    # Some important projects include libraries, copy those even when they don't
+    # start with "afl-". Use "sort -u" to avoid a warning about duplicates.
+    ls afl-* *.txt *.a *.o *.so | sort -u | xargs cp -t $OUT
 fi
 if [ "${COMPILER:-aflpp}" == "aflppdouble" ] ; then 
+    pushd "$SRC"/AFLppDoubleMap > /dev/null
+    cp -f libAFLDriver.a $LIB_FUZZING_ENGINE
     export CC="$SRC/AFLppDoubleMap/afl-clang-fast"
     export CXX="$SRC/AFLppDoubleMap/afl-clang-fast++"
     export CCC="$SRC/AFLppDoubleMap/afl-clang-fast++"
+    # Some important projects include libraries, copy those even when they don't
+    # start with "afl-". Use "sort -u" to avoid a warning about duplicates.
+    ls afl-* *.txt *.a *.o *.so | sort -u | xargs cp -t $OUT
 fi
+
 
 
 
@@ -163,9 +167,6 @@ echo "CC=$CC"
 echo "CXX=$CXX"
 echo "CFLAGS=$CFLAGS"
 echo "CXXFLAGS=$CXXFLAGS"
-echo ""
-echo "$(env)"
-echo ""
 echo "---------------------------------------------------------------"
 
 BUILD_CMD="bash -eux $SRC/build.sh"

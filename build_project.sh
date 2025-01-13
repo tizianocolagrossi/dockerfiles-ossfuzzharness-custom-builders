@@ -6,7 +6,7 @@ usage() {
     echo "  -c    Compiler (e.g., aflpp, aflppdouble, clang, auto) default is auto ans is used for multiple instrumentations"
     echo "  -s    Sanitizers (e.g., asan, ubsan, coverage, enumcoverage, debug)"
     echo "  -f    Fuzzing mode (e.g. fork, persistent)"
-    echo "  -b    Builds (e.g., aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full ) will be also the name of the directory"
+    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full ) will be also the name of the directory"
     echo "  <project_path> Path to the project to build"
     exit 1
 }
@@ -20,10 +20,12 @@ sanitizers="asan ubsan"
 fuzzing_mode="persistent"
 builds=""
 project_path=""
+ask_confirmation="true"
 
 # Parse options
-while getopts "c:s:f:b:" opt; do
+while getopts "yc:s:f:b:" opt; do
     case $opt in
+        y) ask_confirmation="false" ;;
         c) compiler="$OPTARG" ;;
         s) sanitizers="$OPTARG" ;;
         f) fuzzing_mode="$OPTARG" ;;
@@ -54,10 +56,41 @@ if [[ ! -d "$project_path" ]]; then
     exit 1
 fi
 
+if [[ "$ask_confirmation" == "true" ]] ; then
+    # Display selected options
+    echo "Compiler: $compiler"
+    echo "Sanitizers: $sanitizers"
+    echo "Fuzzing Mode: $fuzzing_mode"
+    echo "Build: $builds"
+    echo "Project Path: $project_path"
+    echo ""
+
+    # Prompt the user for confirmation
+    read -p "Do you want to continue? (y/n): " choice
+
+    # Check the user's input
+    case "$choice" in
+        y|Y )
+            echo "Continuing..."
+            ;;
+        n|N )
+            echo "Exiting..."
+            exit 0
+            ;;
+        * )
+            echo "Invalid input. Please enter 'y' or 'n'."
+            exit 0
+            ;;
+    esac
+fi
+
+
 project_path=$(realpath $project_path)
 echo $project_path
 project_name=$(basename $project_path)
 echo $project_name
+
+
 
 docker build -t osvaldo/$project_name $project_path/  #--no-cache
 # docker build -t osvaldo/$project_name $project_path/ 
@@ -74,6 +107,9 @@ for build in $builds; do
   if [ "$compiler" == "auto" ] ; then 
     if [ "$build" == "aflpp" ] ; then
       compiler_chosed="aflpp"
+    fi
+    if [ "$build" == "clang" ] ; then
+      compiler_chosed="clang"
     fi
     if [ "$build" == "enumetric" ] || \
     [ "$build" == "enumetric++" ] || \
@@ -94,9 +130,19 @@ for build in $builds; do
   echo "Project Path: $project_path"
   echo ""
 
+  sanitizers_env=""
+  for sanitizer in $sanitizers; do
+    if [[ "$sanitizer" == "asan" ]] ; then
+        sanitizers_env="$sanitizers_env address"
+    fi
+    if [[ "$sanitizer" == "ubsan" ]] ; then
+        sanitizers_env="$sanitizers_env undefined"
+    fi
+  done
+
   shift
 
-  build_dir=$HOME/sut-docker/$project_name/$build/
+  build_dir=$HOME/sut-docker/aflppdouble-v0.2.7/$project_name/$build/
   if [ -d "$build_dir" ]; then
       echo "$build_dir does exist."
       exit 1
@@ -110,6 +156,7 @@ for build in $builds; do
     --env COMPILER="$compiler_chosed" \
     --env BUILDTYPE="$build" \
     --env BUILD_UID=$current_uid \
+    --env SANITIZER="$sanitizers_env" \
     -v $build_dir:/out -t osvaldo/$project_name
 
 done
