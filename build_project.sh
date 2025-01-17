@@ -111,6 +111,10 @@ for build in $builds; do
     if [ "$build" == "clang" ] ; then
       compiler_chosed="clang"
     fi
+    if [ "$build" == "codecov" ] ; then
+      compiler_chosed="aflpp"
+      sanitizers="coverage"
+    fi
     if [ "$build" == "enumetric" ] || \
     [ "$build" == "enumetric++" ] || \
     [ "$build" == "enumetricbb++" ] || \
