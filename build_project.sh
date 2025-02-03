@@ -3,10 +3,10 @@
 # Usage function
 usage() {
     echo "Usage: $0 -c <compiler> -s <sanitizers> -f <fuzzing_mode> -b <build_type> <project_path>"
-    echo "  -c    Compiler (e.g., aflpp, aflppdouble, clang, auto) default is auto ans is used for multiple instrumentations"
+    echo "  -c    Compiler (e.g., aflpp, aflppdouble, clang, sgfuzz, auto) default is auto ans is used for multiple instrumentations"
     echo "  -s    Sanitizers (e.g., asan, ubsan, coverage, enumcoverage, debug)"
     echo "  -f    Fuzzing mode (e.g. fork, persistent)"
-    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full, manual_analysis ) will be also the name of the directory"
+    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full, sgfuzz, manual_analysis ) will be also the name of the directory"
     echo "  <project_path> Path to the project to build"
     exit 1
 }
