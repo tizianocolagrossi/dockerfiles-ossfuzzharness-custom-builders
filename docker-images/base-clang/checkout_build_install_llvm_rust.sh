@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 ################################################################################
+apt update
 apt install -y wget curl make git zip gnupg lsb-release software-properties-common python3.8-venv build-essential
 
 wget https://apt.llvm.org/llvm.sh
