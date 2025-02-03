@@ -6,7 +6,7 @@ usage() {
     echo "  -c    Compiler (e.g., aflpp, aflppdouble, clang, auto) default is auto ans is used for multiple instrumentations"
     echo "  -s    Sanitizers (e.g., asan, ubsan, coverage, enumcoverage, debug)"
     echo "  -f    Fuzzing mode (e.g. fork, persistent)"
-    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full ) will be also the name of the directory"
+    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full, manual_analysis ) will be also the name of the directory"
     echo "  <project_path> Path to the project to build"
     exit 1
 }
@@ -120,6 +120,10 @@ for build in $builds; do
     [ "$build" == "enumetricbb++" ] || \
     [ "$build" == "enumetric_full" ]  ; then
       compiler_chosed="aflppdouble"
+    fi
+    if [ "$build" == "manual_analysis" ] ; then
+        compiler_chosed="aflpp"
+        sanitizers="debug asan ubsan"
     fi
   else
     compiler_chosed=$compiler
