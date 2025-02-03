@@ -109,8 +109,8 @@ for sanitizer in $SANITIZERS ; do
     fi
     if [ "$sanitizer" == "debug" ] ; then 
         echo "SETTING DEBUG"
-        export CFLAGS="-g -01 -fno-optimize-sibling-calls $CFLAGS"
-        export CXXFLAGS="-g -01 -fno-optimize-sibling-calls $CFLAGS"
+        export CFLAGS="-g -O1 -fno-optimize-sibling-calls $CFLAGS"
+        export CXXFLAGS="-g -O1 -fno-optimize-sibling-calls $CFLAGS"
     fi
 done
 
@@ -182,13 +182,13 @@ if [ "${BUILD_UID-0}" -ne "0" ]; then
   adduser -u $BUILD_UID --disabled-password --gecos '' builder
   chown -R builder $SRC $OUT $WORK
   su -c "$BUILD_CMD" builder
-  if [[ $SANITIZERS == *"coverage"* ]]; then
+  if [[ $SANITIZERS == *"coverage"* ]] || [[ $SANITIZERS == *"debug"* ]] ; then
       echo "COPY source files"
       su -c "$COPY_SOURCES_CMD" builder 2>/dev/null || true
   fi
 else
 #   $BUILD_CMD
-  if [[ $SANITIZERS == *"coverage"* ]]; then
+  if [[ $SANITIZERS == *"coverage"* ]] || [[ $SANITIZERS == *"debug"* ]] ; then
     echo "COPY source files"
     $COPY_SOURCES_CMD 2>/dev/null || true
   fi
