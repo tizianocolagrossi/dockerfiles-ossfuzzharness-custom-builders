@@ -16,7 +16,7 @@ current_uid=$(id -u)
 
 # Default values
 compiler="auto"
-sanitizers="asan ubsan"
+sanitizers=""
 fuzzing_mode="persistent"
 builds=""
 project_path=""
@@ -46,8 +46,8 @@ else
 fi
 
 # Validate inputs
-if [[ -z "$compiler" || -z "$sanitizers" || -z "$fuzzing_mode" ]]; then
-    echo "Error: All options (-c, -s, -f, -i) are required."
+if [[ -z "$compiler" || -z "$fuzzing_mode" ]]; then
+    echo "Error: All options (-c, -s, -f) are required."
     usage
 fi
 
@@ -113,7 +113,7 @@ for build in $builds; do
     fi
     if [ "$build" == "codecov" ] ; then
       compiler_chosed="aflpp"
-      sanitizers="coverage"
+      sanitizers="$sanitizers coverage"
     fi
     if [ "$build" == "enumetric" ] || \
     [ "$build" == "enumetric++" ] || \
@@ -123,7 +123,7 @@ for build in $builds; do
     fi
     if [ "$build" == "manual_analysis" ] ; then
         compiler_chosed="aflpp"
-        sanitizers="debug asan ubsan"
+        sanitizers="$sanitizers debug"
     fi
   else
     compiler_chosed=$compiler
@@ -146,6 +146,9 @@ for build in $builds; do
     if [[ "$sanitizer" == "ubsan" ]] ; then
         sanitizers_env="$sanitizers_env undefined"
     fi
+    if [[ "$sanitizer" == "debug" ]] ; then
+        sanitizers_env="$sanitizers_env debug"
+    fi
   done
 
   shift
@@ -156,6 +159,7 @@ for build in $builds; do
       exit 1
   fi
   
+  echo "$sanitizers_env"
   mkdir -p $build_dir
 
   docker run -it --rm \
