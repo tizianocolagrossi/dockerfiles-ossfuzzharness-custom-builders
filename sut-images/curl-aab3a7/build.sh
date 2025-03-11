@@ -17,3 +17,4 @@
 
 # Run the OSS-Fuzz script in the curl-fuzzer project.
 ./ossfuzz.sh
+cp $(ldd $OUT/curl_fuzzer | cut -d" " -f3) $OUT

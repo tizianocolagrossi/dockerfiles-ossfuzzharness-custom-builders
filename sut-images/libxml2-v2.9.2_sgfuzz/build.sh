@@ -36,6 +36,7 @@ cd BUILD
 
 set -x
 $CXX $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/libxml2/BUILD/.libs/libxml2.a -lz -llzma -lsFuzzer -o $OUT/xml
+cp $(ldd $OUT/xml | cut -d" " -f3) $OUT
 
 mkdir $SRC/corpus
 echo "hi" > $SRC/corpus/seed

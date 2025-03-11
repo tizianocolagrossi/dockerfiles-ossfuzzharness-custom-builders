@@ -19,10 +19,12 @@
 
 export AFL_LLVM_CMPLOG=1
 ./ossfuzz.sh
-find /out/ -type f ! -name "curl_fuzzer" -delete
+# find /out/ -type f ! -name "curl_fuzzer" -delete
+find /out/ -type f -name "curl*" ! -name "curl_fuzzer" -delete
 mv /out/curl_fuzzer /out/curl_fuzzer.cmplog
 touch $OUT/afl_cmplog.txt
 unset AFL_LLVM_CMPLOG
 
 ./ossfuzz.sh
+cp $(ldd $OUT/curl_fuzzer | cut -d" " -f3) $OUT
 

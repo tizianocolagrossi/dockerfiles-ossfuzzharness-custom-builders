@@ -6,3 +6,4 @@ make -j
 # Note: infotocap is actually binary tic, the name infotocap should not be changed. 
 # This is like busybox, which functionality is determined by its binary name
 cp progs/tic /out/infotocap 
+cp $(ldd $OUT/infotocap | cut -d" " -f3) $OUT

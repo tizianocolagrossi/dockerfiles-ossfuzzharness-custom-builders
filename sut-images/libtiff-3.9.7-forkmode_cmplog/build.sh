@@ -17,4 +17,5 @@ unset AFL_LLVM_CMPLOG
 make -j 
 
 cp tools/tiffsplit /out/tiffsplit
+cp $(ldd $OUT/tiffsplit | cut -d" " -f3) $OUT
 make clean 
