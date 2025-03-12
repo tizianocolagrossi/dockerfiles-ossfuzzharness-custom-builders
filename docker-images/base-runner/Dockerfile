@@ -57,6 +57,7 @@ RUN mkdir -p $FUZZ_OUT
 # Do this last to make developing these files easier/faster due to caching.
 COPY download_corpus \
     run_fuzzer \
+    run_libfuzzer \
     parse_options.py \
     targets_list \
     /usr/local/bin/
