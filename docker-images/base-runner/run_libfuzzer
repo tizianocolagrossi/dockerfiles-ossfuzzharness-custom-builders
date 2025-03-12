@@ -1,0 +1,90 @@
+#!/bin/bash
+# Convert time format (e.g., 30m → seconds, 4h → seconds)
+convert_time() {
+    local TIME=$1
+    if [[ $TIME =~ ^([0-9]+)m$ ]]; then
+        echo $((${BASH_REMATCH[1]} * 60))  # Convert minutes to seconds
+    elif [[ $TIME =~ ^([0-9]+)h$ ]]; then
+        echo $((${BASH_REMATCH[1]} * 3600))  # Convert hours to seconds
+    else
+        echo "Error: Invalid time format '$TIME'. Use 'Xm' (minutes) or 'Xh' (hours)." >&2
+        exit 1
+    fi
+}
+
+# Default values
+TOTAL_TIMEOUT=$(convert_time "1m")  # Default 1 min
+DICTIONARY=""
+
+# Print usage message
+usage() {
+    echo "Usage: $0 -t <fuzz_target> -b <cpu_id> -c <corpus_zip> -o <output_dir> [-x <dictionary>] [-T <timeout>]"
+    echo "  -T <timeout>: Time format can be '30m' (minutes) or '4h' (hours)"
+    exit 1
+}
+
+# Parse command-line arguments
+while getopts "t:b:c:o:d:T:" opt; do
+    case ${opt} in
+        t ) FUZZ_TARGET=$OPTARG ;;
+        b ) CPUIDBIND=$OPTARG ;;
+        c ) CORPUS_ZIP=$OPTARG ;;
+        o ) OUTPUT_DIR=$OPTARG ;;
+        x ) DICTIONARY=$OPTARG ;;
+        T ) TOTAL_TIMEOUT=$(convert_time "$OPTARG") ;;
+        * ) usage ;;
+    esac
+done
+
+# Ensure required arguments are provided
+if [ -z "$FUZZ_TARGET" ] || [ -z "$CORPUS_ZIP" ] || [ -z "$OUTPUT_DIR" ]; then
+    echo "Error: Missing required arguments!"
+    usage
+fi
+
+QUEUE="$OUTPUT_DIR/default/queue/"
+CRASHES="$OUTPUT_DIR/default/crashes/"
+
+# Prepare output directories
+mkdir -p "$QUEUE"
+mkdir -p "$CRASHES"
+
+# Extract corpus if ZIP exists
+if [ -f "$CORPUS_ZIP" ]; then
+    echo "Extracting corpus from $CORPUS_ZIP to $QUEUE..."
+    unzip -o "$CORPUS_ZIP" -d "$QUEUE"
+else
+    echo "Error: Corpus ZIP file not found: $CORPUS_ZIP"
+    exit 1
+fi
+
+run_libfuzzer() {
+
+    # Construct command with optional dictionary
+    CMD=("$FUZZ_TARGET" 
+            -fork=1 
+            -ignore_ooms=1 
+            -ignore_timeouts=1 
+            -ignore_crashes=1 
+            -keep_seed=1 
+            -cross_over_uniform_dist=1 
+            -rss_limit_mb=16192 
+            -print_final_stats=1 
+            -close_fd_mask=3 
+            -timeout=5 
+            -detect_leaks=0 
+            -max_total_time=$TOTAL_TIMEOUT
+            -artifact_prefix=$CRASHES 
+            "$QUEUE")
+
+    if [ -n "$DICTIONARY" ] && [ -f "$DICTIONARY" ]; then
+        echo "Using dictionary: $DICTIONARY"
+        CMD+=("-dict=$DICTIONARY")
+    fi
+
+    # Run LibFuzzer with timeout
+    echo "taskset -c $CPUIDBIND ${CMD[@]}"
+    taskset -c $CPUIDBIND "${CMD[@]}"
+}
+
+run_libfuzzer

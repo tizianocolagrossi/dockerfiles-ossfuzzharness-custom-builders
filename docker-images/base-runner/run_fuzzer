@@ -79,6 +79,8 @@ function get_dictionary() {
      printf -- "-x %s" "$dict"
   elif [[ "$FUZZING_ENGINE" = "libafl" ]] ; then
      printf -- "-x %s" "$dict"
+  elif [[ "$FUZZING_ENGINE" = "sgfuzz" ]] ; then
+     printf -- "-x %s" "$dict"
   else
      printf "Unexpected FUZZING_ENGINE: $FUZZING_ENGINE, ignoring\n" >&2
   fi
@@ -176,7 +178,7 @@ elif [[ "$FUZZING_ENGINE" = libafl ]]; then
     echo "CPU_ID_BIND is set but empty so use all cpu available"
   else
     echo "CPU_ID_BIND is set. binding to $CPU_ID_BIND"
-    LIBAFL_FUZZER_ARGS="$LIBAFL_FUZZER_ARGS -b $CPU_ID_BIND"
+    LIBAFL_FUZZER_ARGS="$LIBAFL_FUZZER_ARGS -b $CPU_ID_BIND "
   fi
 
   # AFL expects at least 1 file in the input dir.
@@ -187,6 +189,21 @@ elif [[ "$FUZZING_ENGINE" = libafl ]]; then
 
   echo $CMD_LINE
   echo libafl setup:
+
+elif [[ "$FUZZING_ENGINE" = sgfuzz ]]; then
+  
+  SGFUZZER_ARGS=""
+
+  if [[ -z "${CPU_ID_BIND+x}" ]]; then
+    echo "CPU_ID_BIND is not set so use all cpu available"
+  elif [[ -z "${CPU_ID_BIND}" ]]; then
+    echo "CPU_ID_BIND is set but empty so use all cpu available"
+  else
+    echo "CPU_ID_BIND is set. binding to $CPU_ID_BIND"
+    SGFUZZER_ARGS="$SGFUZZER_ARGS -b $CPU_ID_BIND"
+  fi
+
+  CMD_LINE="run_libfuzzer $SGFUZZER_ARGS -T $TIMEOUT -c $SEED_CORPUS -t $OUT/$FUZZER -o $FUZZ_OUT $(get_dictionary)"
 
 else
 
