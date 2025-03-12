@@ -90,7 +90,7 @@ export CXXFLAGS="-fsanitize=fuzzer-no-link $CFLAGS"
 
 
 # Copy latest llvm-symbolizer in $OUT for stack symbolization.
-cp $(which llvm-symbolizer-13) $OUT/
+cp $(which llvm-symbolizer-10) $OUT/
 
 echo "---------------------------------------------------------------"
 echo "CC=$CC"

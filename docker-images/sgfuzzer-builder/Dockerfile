@@ -14,7 +14,7 @@
 #
 ################################################################################
 
-FROM osvaldo/oss-base-clang
+FROM osvaldo/oss-base-clang-10
 
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
@@ -26,8 +26,6 @@ RUN /build_sgfuzzer.sh
 # && rm /build_sgfuzzer.sh
 
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-RUN ln -s /usr/bin/llvm-profdata-13 /usr/bin/llvm-profdata
 
 # DEPRECATED - NEW CODE SHOULD NOT USE THIS. OLD CODE SHOULD STOP. Please use
 # LIB_FUZZING_ENGINE instead.

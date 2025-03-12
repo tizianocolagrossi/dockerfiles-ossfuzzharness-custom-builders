@@ -28,7 +28,7 @@ apt-get update && \
     apt-get install -y \
         binutils-dev \
         build-essential \
-        llvm-13-dev \
+        llvm-10-dev \
         curl \
         wget \
         git \
