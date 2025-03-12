@@ -48,16 +48,17 @@ make -j$(nproc)
 # Build PcapPlusPlus linking statically against the built libpcap
 cd $SRC/PcapPlusPlus
 echo "m_Version" > filter.txt
-python3 /src/SGFuzz/sanitizer/State_machine_instrument.py -b ./filter.txt .
+echo "curField" >> filter.txt
+python3 /src/SGFuzz/sanitizer/State_machine_instrument.py . -b ./filter.txt
 ./configure-fuzzing.sh --libpcap-static-lib-dir $SRC/libpcap/
 make clean
 make fuzzers -j$(nproc) 
 
-# # Copy target and options
-# cp $SRC/PcapPlusPlus/Tests/Fuzzers/Bin/FuzzTarget $OUT
-# cp $(ldd $OUT/FuzzTarget | cut -d" " -f3) $OUT
-# cp $(ldd $OUT/llvm-symbolizer-10 | cut -d" " -f3) $OUT
-# cp $SRC/default.options $OUT/FuzzTarget.options
+# Copy target and options
+cp $SRC/PcapPlusPlus/Tests/Fuzzers/Bin/FuzzTarget $OUT
+cp $(ldd $OUT/FuzzTarget | cut -d" " -f3) $OUT
+cp $(ldd $OUT/llvm-symbolizer-10 | cut -d" " -f3) $OUT
+cp $SRC/default.options $OUT/FuzzTarget.options
 
 # # Copy corpora
 # cd $SRC/tcpdump

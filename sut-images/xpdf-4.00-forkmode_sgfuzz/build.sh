@@ -10,7 +10,9 @@ rm $SRC/xpdf-4.00/xpdf/CMakeLists.txt
 mv $SRC/CMakeLists.txt $SRC/xpdf-4.00/xpdf/CMakeLists.txt
 
 echo "tag" > filter.txt
-python3 /src/SGFuzz/sanitizer/State_machine_instrument.py -b filter.txt .
+echo "state" >> filter.txt
+echo "type" >> filter.txt
+python3 /src/SGFuzz/sanitizer/State_machine_instrument.py . -b filter.txt
 
 
 mkdir build
