@@ -1,0 +1,31 @@
+diff --git a/Tests/Fuzzers/FuzzTarget.cpp b/Tests/Fuzzers/FuzzTarget.cpp
+index 5c3bf4e3..7791e3bc 100644
+--- a/Tests/Fuzzers/FuzzTarget.cpp
++++ b/Tests/Fuzzers/FuzzTarget.cpp
+@@ -35,7 +35,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
+ 
+ 	if (dumpDataToPcapFile(Data, Size) < 0)
+ 	{
+-		return 1;
++		return 0;
+ 	}
+ 
+ 	// open a pcap file for reading
+@@ -43,7 +43,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
+ 	if (!reader.open())
+ 	{
+ 		std::cerr << "Error opening the pcap file\n";
+-		return 1;
++		return 0;
+ 	}
+ 
+ 	// read the first (and only) packet from the file
+@@ -51,7 +51,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
+ 	if (!reader.getNextPacket(rawPacket))
+ 	{
+ 		std::cerr << "Couldn't read the first packet in the file\n";
+-		return 1;
++		return 0;
+ 	}
+ 
+ 	// parse the raw packet into a parsed packet
