@@ -51,6 +51,10 @@ make apps/openssl || $CXX $CXXFLAGS -Wl,--whole-archive /usr/lib/libhfcommon.a /
 
 cp $(ldd $OUT/openssl | cut -d" " -f3) $OUT
 
+cp $SRC/*.pem $OUT
+cp $SRC/*.dict $OUT
+cp $SRC/*.zip $OUT
+
 # Run command
 # cd experiments/openssl && \
 # ./apps/openssl -close_fd_mask=3 ../in-tls -- s_server -key ../key.pem -cert ../cert.pem -4 -no_anti_replay // for sgfuzz

@@ -96,3 +96,7 @@ make apps/openssl || $CXX $CXXFLAGS -Wl,--whole-archive /usr/lib/libhfcommon.a /
         apps/libapps.a -lssl -lcrypto -ldl -pthread \
         -o $OUT/openssl 
 cp $(ldd $OUT/openssl | cut -d" " -f3) $OUT
+
+cp $SRC/*.pem $OUT
+cp $SRC/*.dict $OUT
+cp $SRC/*.zip $OUT

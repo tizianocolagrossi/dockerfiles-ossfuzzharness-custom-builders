@@ -37,11 +37,11 @@ RUN cd $SRC/honggfuzz && \
 RUN git clone https://github.com/openssl/openssl.git $SRC/openssl && \
     cd $SRC/openssl && git checkout c74188e 
 
-COPY key.pem $OUT/key.pem
-COPY cert.pem $OUT/cert.pem
-COPY openssl_seed_corpus.zip $OUT/openssl_seed_corpus.zip
-COPY tls.dict $OUT/tls.dict
-COPY blocked_variables.txt $OUT/blocked_variables.txt
+COPY key.pem $SRC/key.pem
+COPY cert.pem $SRC/cert.pem
+COPY openssl_seed_corpus.zip $SRC/openssl_seed_corpus.zip
+COPY tls.dict $SRC/tls.dict
+COPY blocked_variables.txt $SRC/blocked_variables.txt
 
 WORKDIR $SRC
 COPY build.sh $SRC/
