@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y cargo
 RUN cargo install rustfilt
 
 # Using multi-stage build to copy some LLVM binaries needed in the runner image.
+FROM osvaldo/oss-base-clang-10 AS base-clang-10
 FROM osvaldo/oss-base-clang AS base-clang
 
 # Real image that will be used later.
@@ -35,6 +36,11 @@ COPY --from=temp-runner-binary-builder /root/.cargo/bin/rustfilt /usr/local/bin
 COPY --from=base-clang /usr/bin/llvm-cov-13 \
      /usr/bin/llvm-profdata-13 \
      /usr/bin/llvm-symbolizer-13 \
+     /usr/local/bin/
+
+COPY --from=base-clang-10 /usr/bin/llvm-cov-10 \
+     /usr/bin/llvm-profdata-10 \
+     /usr/bin/llvm-symbolizer-10 \
      /usr/local/bin/
 
 COPY install_deps.sh /
