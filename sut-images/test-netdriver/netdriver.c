@@ -41,9 +41,6 @@ const char *const LIBHFNETDRIVER_module_netdriver = _HF_NETDRIVER_SIG;
 #define HFND_RECVTIME 10
 */
 
-
-atomic_int should_restart = 1;
-
 static char *initial_server_argv[] = {"fuzzer", NULL};
 
 static struct {
@@ -70,34 +67,21 @@ static void *netDriver_mainProgram(void *unused HF_ATTR_UNUSED) {
     int ret = HonggfuzzNetDriver_main(hfnd_globals.argc_server, hfnd_globals.argv_server);
     LOG_I("Honggfuzz Net Driver (pid=%d): HonggfuzzNetDriver_main() function exited with: %d",
         (int)getpid(), ret);
-    // Signal the monitor to restart
-    should_restart = 1;
-    // _exit(ret);
-    pthread_exit(NULL);
+    _exit(ret);
 }
 
 static void *netDriver_startOriginalProgramInThread(void *unused HF_ATTR_UNUSED) {
     pthread_t      t;
-    
-    while (1) {
-        if (should_restart) {
-            should_restart = 0;
-            pthread_attr_t attr;
-            pthread_attr_init(&attr);
-            pthread_attr_setstacksize(&attr, 1024ULL * 1024ULL * 8ULL);
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, 1024ULL * 1024ULL * 8ULL);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-            if (pthread_create(&t, &attr, netDriver_mainProgram, NULL) != 0) {
-                PLOG_F("Couldn't create the 'netDriver_mainProgram' thread");
-                should_restart = 1; // dunno if
-            }
-            pthread_attr_destroy(&attr);
-        }
-        util_sleepForMSec(100); // Sleep 100 ms to avoid busy-wait
+    if (pthread_create(&t, &attr, netDriver_mainProgram, NULL) != 0) {
+        PLOG_F("Couldn't create the 'netDriver_mainProgram' thread");
     }
-
-
-    
+    pthread_attr_destroy(&attr);
+    return (void *) 0x0;
 }
 
 #if defined(_HF_ARCH_LINUX)
@@ -386,7 +370,9 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
     return 0;
 }
 
-static void initializationOnFirstSeed(){
+int LLVMFuzzInitializePostForkInit(int *argc, char ***argv) {
+    (void) argc;
+    (void) argv;
     netDriver_initNsIfNeeded();
     // netDriver_startOriginalProgramInThread();
 
@@ -405,15 +391,14 @@ static void initializationOnFirstSeed(){
         (int)getpid(),
         files_sockAddrToStr(
             (const struct sockaddr *)&hfnd_globals.dest_addr.addr, hfnd_globals.dest_addr.slen));
+    return 0;
 }
 
-static pthread_once_t server_once = PTHREAD_ONCE_INIT;
+// static pthread_once_t server_once = PTHREAD_ONCE_INIT;
 
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
-
+    // const char afl_test[5] = "##SI";
     if (len == 0) return 0;
-
-    pthread_once(&server_once, initializationOnFirstSeed);
 
     int sock = -1;
     for (;;){
