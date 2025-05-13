@@ -95,6 +95,13 @@ static void netDriver_mountTmpfs(const char *path) {
 }
 #endif /* defined(_HF_ARCH_LINUX) */
 
+/**
+ * @brief Initializes network namespaces and tmpfs for NetDriver (Linux-only).
+ *
+ * Ensures one-time setup of user, net, mount, IPC, and UTS namespaces,
+ * brings up the loopback interface, and mounts tmpfs (both dynamic and legacy paths).
+ * Logs a warning if namespaces are unsupported on non-Linux platforms.
+ */
 static void netDriver_initNsIfNeeded(void) {
     static bool initialized = false;
     if (initialized) {
@@ -149,8 +156,19 @@ static void netDriver_bindToRndLoopback(int sock, sa_family_t sa_family) {
     }
 }
 
+/**
+ * @brief Creates, configures, and connects a socket to a given address.
+ *
+ * Opens a socket of the specified type and protocol, applies common options
+ * (e.g. SO_REUSEADDR, TCP_NODELAY, TCP_QUICKACK), binds it to a random loopback
+ * address, and attempts to connect to the given address.
+ *
+ * @return Connected socket descriptor on success, -1 on failure.
+ */
 static int netDriver_sockConnAddr(
     const struct sockaddr *addr, socklen_t socklen, int type, int protocol) {
+    
+    printf("in sockConnAddr socket family %d, type %d, proto %d\n", addr->sa_family, type, protocol);
     int sock = socket(addr->sa_family, type, protocol);
     if (sock == -1) {
         PLOG_W("socket(family=%d for dst_addr='%s', type=%d, protocol=%d)", addr->sa_family,
@@ -270,6 +288,10 @@ static void netDriver_Assign(
     hfnd_globals.dest_addr.slen     = slen;
     hfnd_globals.dest_addr.type     = type;
     hfnd_globals.dest_addr.protocol = protocol;
+
+    LOG_I("Assigned binding to address: %s (type: %d, protocol: %d)",
+          files_sockAddrToStr(addr, slen), type, protocol);
+
 }
 static bool netDriver_connAndAssign(
     const struct sockaddr *addr, socklen_t slen, int type, int protocol) {
@@ -373,7 +395,18 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
 int LLVMFuzzInitializePostForkInit(int *argc, char ***argv) {
     (void) argc;
     (void) argv;
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
     netDriver_initNsIfNeeded();
+    const struct sockaddr * tmpaddr = (const struct sockaddr *)&hfnd_globals.dest_addr.addr;
+    printf("pre set socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
+    setGlobalsAddress();
+    printf("post set socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
     // netDriver_startOriginalProgramInThread();
 
     pthread_t monitor;
@@ -384,7 +417,6 @@ int LLVMFuzzInitializePostForkInit(int *argc, char ***argv) {
 
     (void) setGlobalsAddress;
     (void) netDriver_checkIfServerReady;
-    setGlobalsAddress();
 
     LOG_I("[INITIALIZER] (pid=%d): The server process is ready to accept connections at "
           "'%s'. Fuzzing starts now!",
@@ -400,8 +432,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
     // const char afl_test[5] = "##SI";
     if (len == 0) return 0;
 
+    if (hfnd_globals.dest_addr.addr.ss_family == AF_UNSPEC) {
+        printf("Destination address not set before fuzzing started");
+    }
+
     int sock = -1;
     for (;;){
+        const struct sockaddr * tmpaddr = (const struct sockaddr *)&hfnd_globals.dest_addr.addr;
+        printf("socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
         sock = netDriver_sockConnAddr((const struct sockaddr *)&hfnd_globals.dest_addr.addr,
             hfnd_globals.dest_addr.slen, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
         if (sock>=0) break;
