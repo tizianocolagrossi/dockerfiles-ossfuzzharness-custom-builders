@@ -203,7 +203,7 @@ elif [[ "$FUZZING_ENGINE" = sgfuzz ]]; then
     SGFUZZER_ARGS="$SGFUZZER_ARGS -b $CPU_ID_BIND"
   fi
 
-  CMD_LINE="run_libfuzzer $SGFUZZER_ARGS -T $TIMEOUT -c $SEED_CORPUS -t $OUT/$FUZZER -o $FUZZ_OUT $(get_dictionary)"
+  CMD_LINE="run_libfuzzer $SGFUZZER_ARGS -T $TIMEOUT -c $SEED_CORPUS -t $OUT/$FUZZER -o $FUZZ_OUT $(get_dictionary) $*"
 
 else
 

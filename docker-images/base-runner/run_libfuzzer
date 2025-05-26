@@ -24,7 +24,7 @@ usage() {
 }
 
 # Parse command-line arguments
-while getopts "t:b:c:o:d:T:" opt; do
+while getopts "t:b:c:o:x:d:T:" opt; do
     case ${opt} in
         t ) FUZZ_TARGET=$OPTARG ;;
         b ) CPUIDBIND=$OPTARG ;;
@@ -35,6 +35,15 @@ while getopts "t:b:c:o:d:T:" opt; do
         * ) usage ;;
     esac
 done
+
+# Remove parsed options from positional parameters
+shift $((OPTIND -1))
+# Store remaining arguments
+ADDITIONAL_SUT_ARGS="$@"
+# Prepend " -- " if non-empty
+if [[ -n $(echo "$ADDITIONAL_SUT_ARGS" | tr -d '[:space:]') ]]; then
+    ADDITIONAL_SUT_ARGS="-- $ADDITIONAL_SUT_ARGS"
+fi
 
 # Ensure required arguments are provided
 if [ -z "$FUZZ_TARGET" ] || [ -z "$CORPUS_ZIP" ] || [ -z "$OUTPUT_DIR" ]; then
@@ -61,6 +70,10 @@ fi
 run_libfuzzer() {
 
     # Construct command with optional dictionary
+            # -fork=1 
+            # -ignore_ooms=1 
+            # -ignore_timeouts=1 
+            # -ignore_crashes=1 
     CMD=("$FUZZ_TARGET" 
             -fork=1 
             -ignore_ooms=1 
@@ -75,16 +88,40 @@ run_libfuzzer() {
             -detect_leaks=0 
             -max_total_time=$TOTAL_TIMEOUT
             -artifact_prefix=$CRASHES 
-            "$QUEUE")
+            "$QUEUE" 
+            )
 
-    if [ -n "$DICTIONARY" ] && [ -f "$DICTIONARY" ]; then
+    # Handle additional args as an array if needed
+    if [[ -n "$ADDITIONAL_SUT_ARGS" ]]; then
+        CMD+=($ADDITIONAL_SUT_ARGS)
+    fi
+
+    if [[ -n "$DICTIONARY" && -f "$DICTIONARY" ]]; then
         echo "Using dictionary: $DICTIONARY"
         CMD+=("-dict=$DICTIONARY")
     fi
 
     # Run LibFuzzer with timeout
     echo "taskset -c $CPUIDBIND ${CMD[@]}"
-    taskset -c $CPUIDBIND "${CMD[@]}"
+    # taskset -c $CPUIDBIND "${CMD[@]}"
+
+    # Create the script file
+    echo "#!/bin/bash" > bashscript.sh
+    echo "${CMD[@]}" >> bashscript.sh
+
+    # Make it executable
+    chmod +x bashscript.sh
+
+    taskset -c $CPUIDBIND bashscript.sh
+
 }
 
+echo "add args $ADDITIONAL_SUT_ARGS"
+
 run_libfuzzer
+
+cd $OUTPUT_DIR
+tar --create --gzip --preserve-permissions --file=fuzz_out.tar.gz ./*
+chown -R $OUTUID:$OUTGID $OUTPUT_DIR
+ls -l
+find . -not -name fuzz_out.tar.gz -delete

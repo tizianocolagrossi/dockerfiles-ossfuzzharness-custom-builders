@@ -38,6 +38,8 @@ COPY --from=base-clang /usr/bin/llvm-cov-13 \
      /usr/bin/llvm-symbolizer-13 \
      /usr/local/bin/
 
+COPY --from=base-clang /src/desockmulti/desockmulti.so /usr/lib/desockmulti.so
+
 COPY --from=base-clang-10 /usr/bin/llvm-cov-10 \
      /usr/bin/llvm-profdata-10 \
      /usr/bin/llvm-symbolizer-10 \
@@ -45,7 +47,6 @@ COPY --from=base-clang-10 /usr/bin/llvm-cov-10 \
 
 COPY install_deps.sh /
 RUN /install_deps.sh && rm /install_deps.sh
-
 
 # Default environment options for various sanitizers.
 # Note that these match the settings used in ClusterFuzz and
