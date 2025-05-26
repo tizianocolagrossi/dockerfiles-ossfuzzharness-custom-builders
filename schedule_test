@@ -1,0 +1,197 @@
+#! /bin/bash
+
+print_error() {
+    # ANSI escape code for red text
+    echo -e "\033[31m$1\033[0m"
+}
+
+RAMMAX=4g
+WRITEMAX=4g
+
+#docker-run-cpu-affinity --rm -v ~/sut-docker/xpdf-v4.00/baseline/:/out -v ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog-$id:/fuzz_out -e FUZZING_ENGINE=libafl -e TIMEOUT=5m -t oss-base-runner run_fuzzer fuzz_pdfload
+DUMMY=1
+if [ -n "$1" ] ; then
+    if [ "$1" == "--no-dummy" ] ; then
+        DUMMY=0
+    fi
+fi
+
+# cat /sys/devices/system/cpu/cpu0/topology/thread_siblings_list
+
+get_cpu_siblings() {
+    local cpuid=$1
+    cat /sys/devices/system/cpu/cpu"$cpuid"/topology/thread_siblings_list
+}
+
+convert_to_minutes() {
+    local time_str="$1"
+    
+    # Extract numeric part and unit
+    local num="${time_str//[!0-9]/}"
+    local unit="${time_str//[0-9]/}"
+
+    # Convert num to an integer
+    num=$((num))
+
+    # Calculate minutes based on the unit
+    case "$unit" in
+        "h") minutes=$((num * 60)) ;;
+        "m") minutes=$((num)) ;;
+        "s") minutes=$((num / 60)) ;;
+        *) echo "Invalid unit"; exit 1 ;;
+    esac
+
+    echo "$minutes"
+}
+
+perform_task() {
+    fuzzing_engine=$1
+    echo ""
+    echo :----------------------
+    echo : fuzzing_engine $1
+    shift
+    fuzzer=$1
+    echo : fuzzer         $1
+    shift
+    fuzzer_dir=$1
+    echo : fuzzer_dir     $1
+    shift
+    output_dir=$1
+    echo : output_dir     $1
+    shift
+    runs=$1
+    echo : runs           $1
+    shift
+    cor_start=$1
+    echo : cor_start      $1
+    shift
+    timeout=$1
+    echo : timeout        $1
+    shift
+    min_start=$1
+    echo : min_start      $1
+    echo :----------------------
+    shift
+    
+    PRIVILEGED_FLAG=$([[ "$PRIVILEGED" == "1" ]] && echo "--privileged" || echo "")
+
+    if [[ "$fuzzing_engine" != "afl" && "$fuzzing_engine" != "libafl" && "$fuzzing_engine" != "sgfuzz" ]]; then
+        print_error "Error: The variable must be either 'afl', 'libafl' or 'sgfuzz' , not $fuzzing_engine."
+        exit 1
+    fi
+
+    if [[ "$fuzzing_engine" == "afl" ]]; then
+        timeout=$(convert_to_minutes $timeout)
+        timeout=$(($timeout*60))
+    fi
+
+    ls $fuzzer_dir > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+        print_error "ERROR $fuzzer_dir do not exist"
+        exit 1
+    fi
+    ls $fuzzer_dir/$fuzzer > /dev/null
+    if [[ ! $? -eq 0 ]]; then
+        print_error "ERROR $fuzzer not present in $fuzzer_dir"
+        exit 1
+    fi
+    # Loop from core_start to core_end
+    for counter in $(seq 1 ${runs}); do
+        minutes=$min_start
+        core_id=$(($COUNTER_OFFSET+$counter+$cor_start-1))
+        if [ $DUMMY == 1 ] ; then
+            #dummy
+            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e HFND_TCP_PORT=$FUZZ_PORT -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
+        else
+            #real
+            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e HFND_TCP_PORT=$FUZZ_PORT -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+        fi
+    done
+}
+
+in_round_w_named_output (){
+    sut_build_type=$1
+    shift
+    core_start=$1
+    shift
+    output_dir=$1
+    shift
+
+    perform_task $FUZZING_ENGINE $FUZZER $SUT_BASEPATH/$SUT/$sut_build_type $OUTPUT_BASEPATH/$output_dir $RUN $core_start $TIMEOUT $ROUND_TIME $*
+}
+
+in_round (){
+    sut_build_type=$1
+    shift
+    core_start=$1
+    shift
+
+    scheduling_date=$(date +%F)
+
+    in_round_w_named_output $sut_build_type $core_start "$SUT"_scheduled"$scheduling_date"_"$sut_build_type" $*
+}
+
+ROUND_COUNTER=0
+
+COUNTER_OFFSET=0
+TIMEOUT="15m"
+DELTA="1"
+RUN="2"
+
+
+
+TIME_UNIT=$(convert_to_minutes $TIMEOUT)
+TIME_UNIT=$(($TIME_UNIT+$DELTA))
+
+OUTPUT_BASEPATH=~/outputs
+SUT_BASEPATH=~/sut-docker/aflppdouble-v0.2.7
+
+# #             fuzzing-engine   fuzzer       fuzz_dir                          out_dir_prefx                                run core_start timeout  min_start additional_options
+# #perform_task afl|libafl       fuzz_pdfload ~/sut-docker/xpdf-v4.00/baseline/ ~/outputs/pdfload-xpdf-v4.00_baseline-cmplog 5   0          5m       1         -c
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflpp                     $OUTPUT_BASEPATH/"$ROUND_SUT"_aflpp         $RUN 0 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetric     $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetric     $RUN 1 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetric++   $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetric++   $RUN 2 $TIMEOUT $ROUND_TIME 
+# perform_task $ROUND_TYPE $ROUND_FUZZER $SUT_BASEPATH/$ROUND_SUT/aflppdouble_enumetricbb++ $OUTPUT_BASEPATH/"$ROUND_SUT"_enumetricbb++ $RUN 3 $TIMEOUT $ROUND_TIME 
+
+next_round() {
+    ROUND_TIME=$((TIME_UNIT * $ROUND_COUNTER))
+    ((ROUND_COUNTER++))
+    PRIVILEGED="0"
+}
+
+#next_round
+#FUZZER=tiffsplit
+#FUZZING_ENGINE=afl
+#SUT=libtiff-3.9.7-forkmode
+
+# in_round sut_build_type core_start
+# in_round aflpp          22 "@@"
+# in_round enumetric      27 "@@"
+# in_round enumetric++    32 "@@"
+# in_round enumetricbb++  37 "@@"
+# in_round enumetric_full 42 "@@"
+
+# next_round
+# FUZZER=openssl
+# FUZZING_ENGINE=sgfuzz
+# SUT=openssl-1e08f3_sgfuzz
+# FUZZ_PORT=8554
+
+# in_round sut_build_type core_start
+# in_round sgfuzz          1 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+
+
+
+# 
+# 
+# ./testOnDemandRTSPServer -close_fd_mask=3 -detect_leaks=0 -dict=rtsp.dict -only_ascii=1 /in-rtsp/
+next_round
+PRIVILEGED=1
+FUZZER=testOnDemandRTSPServer
+FUZZING_ENGINE=sgfuzz
+SUT=live-555-2021-08-13_sgfuzz
+FUZZ_PORT=8554
+in_round sgfuzz          1 
+
+
+
