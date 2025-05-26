@@ -52,9 +52,10 @@ RUN --mount=type=ssh \
   git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
 
 # Do precompiles before copying other scripts for better cache efficiency.
+COPY aflppDriverNetdriver.patch /src/aflplusplus/
+COPY aflppDriverNetdriver.patch /src/AFLppDoubleMap/
 COPY precompile_aflpp /usr/local/bin/
 RUN precompile_aflpp
-
 
 COPY compile \
     # compile_plain \

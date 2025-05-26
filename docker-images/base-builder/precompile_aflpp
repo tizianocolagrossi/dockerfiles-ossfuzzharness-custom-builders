@@ -29,6 +29,7 @@ unset CXXFLAGS
 unset CFLAGS
 export AFL_IGNORE_UNKNOWN_ENVS=1
 export LLVM_CONFIG=llvm-config-13
+git apply aflppDriverNetdriver.patch
 make clean
 AFL_NO_X86=1 PYTHON_INCLUDE=/ LLVM_CONFIG=llvm-config-13 make source-only
 make -C utils/aflpp_driver
@@ -36,10 +37,10 @@ make -C utils/aflpp_driver
 popd > /dev/null
 
 pushd $SRC/AFLppDoubleMap > /dev/null
-make clean
 
 export AFL_IGNORE_UNKNOWN_ENVS=1
 export LLVM_CONFIG=llvm-config-13
+git apply aflppDriverNetdriver.patch
 make clean
 AFL_NO_X86=1 PYTHON_INCLUDE=/ LLVM_CONFIG=llvm-config-13 make source-only
 make -C utils/aflpp_driver
