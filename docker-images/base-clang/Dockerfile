@@ -43,6 +43,8 @@ COPY create_dummy_libFuzzingEngine /root/
 RUN /root/create_dummy_libFuzzingEngine
 RUN rm /root/create_dummy_libFuzzingEngine
 
+RUN git clone https://github.com/zyingp/desockmulti.git /$SRC/desockmulti && cd /$SRC/desockmulti && make 
+
 # Setup the environment.
 ENV CC="clang-13"
 ENV CXX="clang++-13"
