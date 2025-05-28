@@ -1,6 +1,5 @@
 #include "libhfnetdriver/netdriver.h"
 
-#include <stdatomic.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -70,9 +69,10 @@ static void *netDriver_mainProgram(void *unused HF_ATTR_UNUSED) {
     _exit(ret);
 }
 
-static void *netDriver_startOriginalProgramInThread(void *unused HF_ATTR_UNUSED) {
+static void netDriver_startOriginalProgramInThread(void) {
     pthread_t      t;
     pthread_attr_t attr;
+
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 1024ULL * 1024ULL * 8ULL);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -80,8 +80,6 @@ static void *netDriver_startOriginalProgramInThread(void *unused HF_ATTR_UNUSED)
     if (pthread_create(&t, &attr, netDriver_mainProgram, NULL) != 0) {
         PLOG_F("Couldn't create the 'netDriver_mainProgram' thread");
     }
-    pthread_attr_destroy(&attr);
-    return (void *) 0x0;
 }
 
 #if defined(_HF_ARCH_LINUX)
@@ -95,13 +93,6 @@ static void netDriver_mountTmpfs(const char *path) {
 }
 #endif /* defined(_HF_ARCH_LINUX) */
 
-/**
- * @brief Initializes network namespaces and tmpfs for NetDriver (Linux-only).
- *
- * Ensures one-time setup of user, net, mount, IPC, and UTS namespaces,
- * brings up the loopback interface, and mounts tmpfs (both dynamic and legacy paths).
- * Logs a warning if namespaces are unsupported on non-Linux platforms.
- */
 static void netDriver_initNsIfNeeded(void) {
     static bool initialized = false;
     if (initialized) {
@@ -109,7 +100,7 @@ static void netDriver_initNsIfNeeded(void) {
     }
     initialized = true;
 
-    #if defined(_HF_ARCH_LINUX)
+#if defined(_HF_ARCH_LINUX)
     if (!nsEnter(CLONE_NEWUSER | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWIPC | CLONE_NEWUTS)) {
         LOG_F("nsEnter(CLONE_NEWUSER|CLONE_NEWNET|CLONE_NEWNS|CLONE_NEWIPC|CLONE_NEWUTS) failed");
     }
@@ -131,7 +122,7 @@ static void netDriver_initNsIfNeeded(void) {
     netDriver_mountTmpfs(HFND_TMP_DIR_OLD);
 
     return;
-    #endif /* defined(_HF_ARCH_LINUX) */
+#endif /* defined(_HF_ARCH_LINUX) */
     LOG_W("Honggfuzz Net Driver (pid=%d): Namespaces not enabled for this OS platform",
         (int)getpid());
 }
@@ -156,19 +147,8 @@ static void netDriver_bindToRndLoopback(int sock, sa_family_t sa_family) {
     }
 }
 
-/**
- * @brief Creates, configures, and connects a socket to a given address.
- *
- * Opens a socket of the specified type and protocol, applies common options
- * (e.g. SO_REUSEADDR, TCP_NODELAY, TCP_QUICKACK), binds it to a random loopback
- * address, and attempts to connect to the given address.
- *
- * @return Connected socket descriptor on success, -1 on failure.
- */
 static int netDriver_sockConnAddr(
     const struct sockaddr *addr, socklen_t socklen, int type, int protocol) {
-    
-    printf("in sockConnAddr socket family %d, type %d, proto %d\n", addr->sa_family, type, protocol);
     int sock = socket(addr->sa_family, type, protocol);
     if (sock == -1) {
         PLOG_W("socket(family=%d for dst_addr='%s', type=%d, protocol=%d)", addr->sa_family,
@@ -181,17 +161,17 @@ static int netDriver_sockConnAddr(
             errno == ENOPROTOOPT) {
             PLOG_W("setsockopt(sock=%d, SOL_SOCKET, SO_REUSEADDR, %d)", sock, val);
         }
-    #if defined(SOL_TCP) && defined(TCP_NODELAY)
+#if defined(SOL_TCP) && defined(TCP_NODELAY)
         if (setsockopt(sock, SOL_TCP, TCP_NODELAY, &val, (socklen_t)sizeof(val)) == -1) {
             PLOG_W("setsockopt(sock=%d, SOL_TCP, TCP_NODELAY, %d)", sock, val);
         }
-    #endif /* defined(SOL_TCP) && defined(TCP_NODELAY) */
-    #if defined(SOL_TCP) && defined(TCP_QUICKACK)
+#endif /* defined(SOL_TCP) && defined(TCP_NODELAY) */
+#if defined(SOL_TCP) && defined(TCP_QUICKACK)
         val = 1;
         if (setsockopt(sock, SOL_TCP, TCP_QUICKACK, &val, (socklen_t)sizeof(val)) == -1) {
             PLOG_D("setsockopt(sock=%d, SOL_TCP, TCP_QUICKACK, %d)", sock, val);
         }
-    #endif /* defined(SOL_TCP) && defined(TCP_QUICKACK) */
+#endif /* defined(SOL_TCP) && defined(TCP_QUICKACK) */
     }
 
     netDriver_bindToRndLoopback(sock, addr->sa_family);
@@ -216,9 +196,11 @@ static int netDriver_sockConnAddr(
  */
 __attribute__((weak)) int HonggfuzzNetDriverArgsForServer(
     int argc, char **argv, int *server_argc, char ***server_argv) {
+
     *server_argc = argc;
     *server_argv = &argv[0];
-    return argc;
+
+    return 1; // force original argc to 1 
 }
 
 /*
@@ -227,14 +209,6 @@ __attribute__((weak)) int HonggfuzzNetDriverArgsForServer(
  */
 __attribute__((weak)) int HonggfuzzNetDriverTempdir(char *str, size_t size) {
     return snprintf(str, size, "%s", HFND_TMP_DIR);
-}
-
-/* Put a custom sockaddr here (e.g. based on AF_UNIX), sety *type and *protocol as per man 2 socket
- */
-__attribute__((weak)) socklen_t HonggfuzzNetDriverServerAddress(
-    struct sockaddr_storage *addr HF_ATTR_UNUSED, int *type HF_ATTR_UNUSED,
-    int *protocol HF_ATTR_UNUSED) {
-    return 0;
 }
 
 static uint16_t netDriver_getTCPPort() {
@@ -259,127 +233,41 @@ static uint16_t netDriver_getTCPPort() {
     return HFND_DEFAULT_TCP_PORT;
 }
 
-static const char *netDriver_getSockPath() {
-    char tmpdir[PATH_MAX] = {};
-    if (HonggfuzzNetDriverTempdir(tmpdir, sizeof(tmpdir)) == -1) {
-        snprintf(tmpdir, sizeof(tmpdir), HFND_TMP_DIR);
-    }
+static void setAndAssignAddress(int family, int type, int protocol, uint16_t port) {
+    struct sockaddr_storage addr_storage;
+    socklen_t slen;
 
-    static __thread char path[PATH_MAX] = {};
-    const char          *sock_path      = getenv(HFND_SOCK_PATH_ENV);
-    /* If it starts with '/' it's an absolute path */
-    if (sock_path && sock_path[0] == '/') {
-        snprintf(path, sizeof(path), "%s", sock_path);
-    } else if (sock_path) {
-        snprintf(path, sizeof(path), "%s/%s", tmpdir, sock_path);
+    if (family == PF_INET) {
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr_storage;
+        addr4->sin_family = PF_INET;
+        addr4->sin_port = htons(port);
+        addr4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        slen = sizeof(struct sockaddr_in);
+    } else if (family == PF_INET6) {
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr_storage;
+        memset(addr6, 0, sizeof(struct sockaddr_in6));
+        addr6->sin6_family = PF_INET6;
+        addr6->sin6_port = htons(port);
+        addr6->sin6_addr = in6addr_loopback;
+        slen = sizeof(struct sockaddr_in6);
     } else {
-        snprintf(path, sizeof(path), "%s/%s", tmpdir, HFND_DEFAULT_SOCK_PATH);
+        LOG_F("Unsupported address family: %d", family);
+        return;
     }
-    return path;
-}
+   
 
-static void netDriver_Assign(
-    const struct sockaddr *addr, socklen_t slen, int type, int protocol) {
     if ((size_t)slen > sizeof(hfnd_globals.dest_addr.addr)) {
-        LOG_F("Provided address '%s' is bigger than sizeof(struct sockaddr_storage): %zu > %zu",
-            files_sockAddrToStr(addr, slen), (size_t)slen, sizeof(hfnd_globals.dest_addr.addr));
+        LOG_F("Provided address is too large: %zu > %zu",
+              (size_t)slen, sizeof(hfnd_globals.dest_addr.addr));
     }
-    memcpy(&hfnd_globals.dest_addr.addr, addr, slen);
+
+    memcpy(&hfnd_globals.dest_addr.addr, &addr_storage, slen);
     hfnd_globals.dest_addr.slen     = slen;
     hfnd_globals.dest_addr.type     = type;
     hfnd_globals.dest_addr.protocol = protocol;
 
     LOG_I("Assigned binding to address: %s (type: %d, protocol: %d)",
-          files_sockAddrToStr(addr, slen), type, protocol);
-
-}
-static bool netDriver_connAndAssign(
-    const struct sockaddr *addr, socklen_t slen, int type, int protocol) {
-    if ((size_t)slen > sizeof(hfnd_globals.dest_addr.addr)) {
-        LOG_F("Provided address '%s' is bigger than sizeof(struct sockaddr_storage): %zu > %zu",
-            files_sockAddrToStr(addr, slen), (size_t)slen, sizeof(hfnd_globals.dest_addr.addr));
-    }
-    int fd = netDriver_sockConnAddr(addr, slen, type, protocol);
-    if (fd >= 0) {
-        close(fd);
-        memcpy(&hfnd_globals.dest_addr.addr, addr, slen);
-        hfnd_globals.dest_addr.slen     = slen;
-        hfnd_globals.dest_addr.type     = type;
-        hfnd_globals.dest_addr.protocol = protocol;
-        return true;
-    }
-    return false;
-}
-
-static void setGlobalsAddress(){
-    /* Next, try TCP4 and TCP6 connections to the localhost */
-    const uint16_t           tcp_port = netDriver_getTCPPort();
-    const struct sockaddr_in addr4    = {
-           .sin_family      = PF_INET,
-           .sin_port        = htons(tcp_port),
-           .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
-    };
-    netDriver_Assign((const struct sockaddr *)&addr4, sizeof(addr4), SOCK_STREAM, 0);
-}
-
-static bool netDriver_checkIfServerReady() {
-    struct sockaddr_storage addr     = {.ss_family = AF_UNSPEC};
-    int                     type     = SOCK_STREAM;
-    int                     protocol = 0;
-    socklen_t               slen     = HonggfuzzNetDriverServerAddress(&addr, &type, &protocol);
-    /* User provided specific destination address */
-    if (slen > 0) {
-        if (netDriver_connAndAssign((struct sockaddr *)&addr, slen, type, protocol)) {
-            return true;
-        }
-
-        LOG_I("[checkIfServerReady] (pid=%d): WAIT for server to start "
-              "accepting conn at '%s'",
-            (int)getpid(), files_sockAddrToStr((struct sockaddr *)&addr, slen));
-        return false;
-    }
-
-    /* Try to connect to ${HFND_TMP_DIR}/${HFND_DEFAULT_SOCK_PATH} first via a PF_UNIX socket */
-    struct sockaddr_un sun = {
-        .sun_family = PF_UNIX,
-        .sun_path   = {},
-    };
-    snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", netDriver_getSockPath());
-    if (netDriver_connAndAssign((const struct sockaddr *)&sun, sizeof(sun), SOCK_STREAM, 0)) {
-        return true;
-    }
-    if (netDriver_connAndAssign((const struct sockaddr *)&sun, sizeof(sun), SOCK_DGRAM, 0)) {
-        return true;
-    }
-    #if defined(SOCK_SEQPACKET)
-    if (netDriver_connAndAssign((const struct sockaddr *)&sun, sizeof(sun), SOCK_SEQPACKET, 0)) {
-        return true;
-    }
-    #endif /* defined(SOCK_SEQPACKET) */
-    /* Next, try TCP4 and TCP6 connections to the localhost */
-    const uint16_t           tcp_port = netDriver_getTCPPort();
-    const struct sockaddr_in addr4    = {
-           .sin_family      = PF_INET,
-           .sin_port        = htons(tcp_port),
-           .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
-    };
-    if (netDriver_connAndAssign((const struct sockaddr *)&addr4, sizeof(addr4), SOCK_STREAM, 0)) {
-        return true;
-    }
-    const struct sockaddr_in6 addr6 = {
-        .sin6_family   = PF_INET6,
-        .sin6_port     = htons(tcp_port),
-        .sin6_flowinfo = 0,
-        .sin6_addr     = in6addr_loopback,
-        .sin6_scope_id = 0,
-    };
-    if (netDriver_connAndAssign((const struct sockaddr *)&addr6, sizeof(addr6), SOCK_STREAM, 0)) {
-        return true;
-    }
-
-    LOG_I("[checkIfServerReady] (pid=%d): WAIT server conn at TCP4/TCP6 port: %hu or at the socket path: '%s'",
-        (int)getpid(), tcp_port, files_sockAddrToStr((const struct sockaddr *)&sun, slen));
-    return false;
+          files_sockAddrToStr((const struct sockaddr *)&addr_storage, slen), type, protocol);
 }
 
 int LLVMFuzzerInitialize(int *argc, char ***argv) {
@@ -392,54 +280,31 @@ int LLVMFuzzerInitialize(int *argc, char ***argv) {
     return 0;
 }
 
-int LLVMFuzzInitializePostForkInit(int *argc, char ***argv) {
-    (void) argc;
-    (void) argv;
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
-    printf("INSIDE LLVMFuzzInitializePostForkInit\n");
+int Initialize() {
+
     netDriver_initNsIfNeeded();
-    const struct sockaddr * tmpaddr = (const struct sockaddr *)&hfnd_globals.dest_addr.addr;
-    printf("pre set socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
-    setGlobalsAddress();
-    printf("post set socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
-    // netDriver_startOriginalProgramInThread();
-
-    pthread_t monitor;
-    if (pthread_create(&monitor, NULL, netDriver_startOriginalProgramInThread, NULL) != 0) {
-        perror("pthread_create monitor");
-        exit(EXIT_FAILURE);
-    }
-
-    (void) setGlobalsAddress;
-    (void) netDriver_checkIfServerReady;
-
-    LOG_I("[INITIALIZER] (pid=%d): The server process is ready to accept connections at "
+    netDriver_startOriginalProgramInThread();
+        
+    setAndAssignAddress(PF_INET, SOCK_STREAM, 0, netDriver_getTCPPort());
+    LOG_I("Honggfuzz Net Driver (pid=%d): The server process is ready to accept connections at "
           "'%s'. Fuzzing starts now!",
         (int)getpid(),
         files_sockAddrToStr(
             (const struct sockaddr *)&hfnd_globals.dest_addr.addr, hfnd_globals.dest_addr.slen));
+
     return 0;
 }
 
-// static pthread_once_t server_once = PTHREAD_ONCE_INIT;
-
 int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
-    // const char afl_test[5] = "##SI";
-    if (len == 0) return 0;
 
-    if (hfnd_globals.dest_addr.addr.ss_family == AF_UNSPEC) {
-        printf("Destination address not set before fuzzing started");
+    static bool initialized = 0;
+    if (!initialized){
+        Initialize();
+        initialized = 1;
     }
 
     int sock = -1;
     for (;;){
-        const struct sockaddr * tmpaddr = (const struct sockaddr *)&hfnd_globals.dest_addr.addr;
-        printf("socket family %d, type %d, proto %d\n", tmpaddr->sa_family, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
         sock = netDriver_sockConnAddr((const struct sockaddr *)&hfnd_globals.dest_addr.addr,
             hfnd_globals.dest_addr.slen, hfnd_globals.dest_addr.type, hfnd_globals.dest_addr.protocol);
         if (sock>=0) break;
@@ -448,12 +313,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
     }
     if (sock == -1) {
         /* netDriver_sockConnAddr() preserves errno */
-        PLOG_F("[TEST ONE] CONN FAILED @ '%s'",
+        PLOG_F("Couldn't connect to the server socket at '%s'",
             files_sockAddrToStr((const struct sockaddr *)&hfnd_globals.dest_addr.addr,
                 hfnd_globals.dest_addr.slen));
     }
     if (!files_sendToSocket(sock, buf, len)) {
-        PLOG_W("[TEST ONE] files_sendToSocket(addr='%s', sock=%d, len=%zu) FAILED",
+        PLOG_W("files_sendToSocket(addr='%s', sock=%d, len=%zu) failed",
             files_sockAddrToStr(
                 (const struct sockaddr *)&hfnd_globals.dest_addr.addr, hfnd_globals.dest_addr.slen),
             sock, len);
@@ -471,13 +336,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
             close(sock);
             return 0;
         }
-        PLOG_F("[TEST ONE] shutdown(sock=%d, SHUT_WR)", sock);
+        PLOG_F("shutdown(sock=%d, SHUT_WR)", sock);
     }
 
 #ifdef HFND_RECVTIME
     const struct timeval timeout = {.tv_sec = 1, .tv_usec = 0};
     if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
-        PLOG_W("[TEST ONE] (pid=%d): Couldn't set setsockopt(sock=%d, SO_RCVTIMEO, 1s)",
+        PLOG_W("Honggfuzz Net Driver (pid=%d): Couldn't set setsockopt(sock=%d, SO_RCVTIMEO, 1s)",
             (int)getpid(), sock);
     }
     time_t start = time(NULL);
@@ -498,7 +363,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
         if (ret == -1 && errno == EWOULDBLOCK) {
             time_t end = time(NULL);
             if ((end - start) > HFND_RECVTIME) {
-                LOG_W("[TEST ONE] (pid=%d): Server didn't close the connection(fd=%d) "
+                LOG_W("Honggfuzz Net Driver (pid=%d): Server didn't close the connection(fd=%d) "
                       "within %d seconds. Closing it.",
                     (int)getpid(), sock, HFND_RECVTIME);
                 break;
@@ -507,7 +372,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len) {
         }
 #endif
         if (ret == -1) {
-            PLOG_W("[TEST ONE] (pid=%d): CONN (sock=%d) closed with ERROR",
+            PLOG_W("Honggfuzz Net Driver (pid=%d): Connection to the server (sock=%d) closed with "
+                   "error",
                 (int)getpid(), sock);
             break;
         }
