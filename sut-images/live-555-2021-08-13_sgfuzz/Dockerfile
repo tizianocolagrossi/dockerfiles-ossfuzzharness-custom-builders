@@ -16,7 +16,7 @@
 
 FROM osvaldo/sgfuzzer-builder:latest
 
-ENV HFND_TCP_PORT=4433
+ENV HFND_TCP_PORT=8554
 RUN chmod 777 /usr/lib &&\
     chmod 777 /opt
 
