@@ -74,6 +74,8 @@ perform_task() {
     shift
     
     PRIVILEGED_FLAG=$([[ "$PRIVILEGED" == "1" ]] && echo "--privileged" || echo "")
+    MULTIDESOCK_FLAG=$([[ "$MULTIDESOCK" == "1" ]] && echo "-e LD_PRELOAD=/usr/lib/desockmulti.so" || echo "")
+    FUZZ_PORT_FLAG=$([[ "$FUZZ_PORT" != "0" ]] && echo "-e HFND_TCP_PORT=$FUZZ_PORT" || echo "")
 
     if [[ "$fuzzing_engine" != "afl" && "$fuzzing_engine" != "libafl" && "$fuzzing_engine" != "sgfuzz" ]]; then
         print_error "Error: The variable must be either 'afl', 'libafl' or 'sgfuzz' , not $fuzzing_engine."
@@ -101,10 +103,10 @@ perform_task() {
         core_id=$(($COUNTER_OFFSET+$counter+$cor_start-1))
         if [ $DUMMY == 1 ] ; then
             #dummy
-            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e HFND_TCP_PORT=$FUZZ_PORT -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
+            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine $FUZZ_PORT_FLAG $MULTIDESOCK_FLAG -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"
         else
             #real
-            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine -e HFND_TCP_PORT=$FUZZ_PORT -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
+            echo "docker run $PRIVILEGED_FLAG --cpuset-cpus="$(get_cpu_siblings $core_id)" --memory="$RAMMAX" --detach --rm -v ${output_dir}-${counter}:/fuzz_out -v ${fuzzer_dir}:/out -e FUZZING_ENGINE=$fuzzing_engine $FUZZ_PORT_FLAG $MULTIDESOCK_FLAG -e TIMEOUT=$timeout -e OUTUID=$(id -u) -e OUTGID=$(id -g) -e CPU_ID_BIND=$core_id -t osvaldo/oss-base-runner run_fuzzer $fuzzer $*"   | at now + $minutes min
         fi
     done
 }
@@ -157,6 +159,8 @@ next_round() {
     ROUND_TIME=$((TIME_UNIT * $ROUND_COUNTER))
     ((ROUND_COUNTER++))
     PRIVILEGED="0"
+    MULTIDESOCK="0"
+    FUZZ_PORT=0
 }
 
 #next_round
@@ -191,6 +195,7 @@ FUZZER=testOnDemandRTSPServer
 FUZZING_ENGINE=sgfuzz
 SUT=live-555-2021-08-13_sgfuzz
 FUZZ_PORT=8554
+MULTIDESOCK=1
 in_round sgfuzz          1 
 
 
