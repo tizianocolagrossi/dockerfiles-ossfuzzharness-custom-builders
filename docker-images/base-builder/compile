@@ -69,6 +69,7 @@ for sanitizer in $SANITIZERS ; do
         echo " > for plain"
         export CFLAGS="-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls $CFLAGS"
         export CXXFLAGS="-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls $CFLAGS"
+        export CFLAGS_SANITIZERS="-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls $CFLAGS_SANITIZERS"
     fi
     if [ "$sanitizer" == "ubsan" ] ; then 
         echo "SETTING UBSAN"
@@ -78,6 +79,7 @@ for sanitizer in $SANITIZERS ; do
         # only applied on plan compilation e.g. with clang and not aflpp like
         export CFLAGS="-fsanitize=undefined -fno-optimize-sibling-calls $CFLAGS"
         export CXXFLAGS="-fsanitize=undefined -fno-optimize-sibling-calls $CFLAGS"
+        export CFLAGS_SANITIZERS="-fsanitize=undefined -fno-optimize-sibling-calls $CFLAGS_SANITIZERS"
         # Disable "function" sanitizer for C code for now, because many projects,
         # possibly via legacy C code are affected.
         # The projects should be fixed and this workaround be removed in the future.
@@ -89,6 +91,7 @@ for sanitizer in $SANITIZERS ; do
         echo "SETTING LLVMCOV"
         export CFLAGS="-fprofile-instr-generate -fcoverage-mapping -Wl -fprofile-instr-generate -fsanitize=fuzzer-no-link $CFLAGS"
         export CXXFLAGS="-fprofile-instr-generate -fcoverage-mapping -Wl -fprofile-instr-generate -fsanitize=fuzzer-no-link $CFLAGS"
+        export CFLAGS_SANITIZERS="-fprofile-instr-generate -fcoverage-mapping -Wl -fprofile-instr-generate $CFLAGS_SANITIZERS"
     fi
     if [ "$sanitizer" == "enumcoverage" ] ; then 
         echo "SETTING ENUMCOV"
@@ -98,6 +101,7 @@ for sanitizer in $SANITIZERS ; do
         echo "SETTING DEBUG"
         export CFLAGS="-g -O1 -fno-optimize-sibling-calls $CFLAGS"
         export CXXFLAGS="-g -O1 -fno-optimize-sibling-calls $CFLAGS"
+        export CFLAGS_SANITIZERS="-g -O1 -fno-optimize-sibling-calls $CFLAGS_SANITIZERS"
     fi
 done
 
