@@ -23,7 +23,7 @@ export CFLAGS="${CFLAGS//-fsanitize=fuzzer-no-link/-fsanitize=fuzzer}"
 make apps/openssl
 
 cp apps/openssl $OUT/openssl.cmplog
-
+touch $OUT/afl_cmplog.txt
 make clean
 
 unset AFL_LLVM_CMPLOG
