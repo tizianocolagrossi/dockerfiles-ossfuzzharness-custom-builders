@@ -1,5 +1,12 @@
 #! /bin/bash
 
+pushd $SRC/honggfuzz
+CFLAGS="-fsanitize=fuzzer-no-link $CFLAGS_SANITIZERS" make libhfcommon/libhfcommon.a 
+CFLAGS="-fsanitize=fuzzer-no-link $CFLAGS_SANITIZERS -DHFND_RECVTIME=1" make libhfnetdriver/libhfnetdriver.a
+mv libhfcommon/libhfcommon.a /usr/lib/libhfcommon.a 
+mv libhfnetdriver/libhfnetdriver.a /usr/lib/libhfnetdriver.a
+popd
+
 cd $SRC/openssl
 
 sed -i "s/ main/ HonggfuzzNetDriver_main/g" apps/openssl.c

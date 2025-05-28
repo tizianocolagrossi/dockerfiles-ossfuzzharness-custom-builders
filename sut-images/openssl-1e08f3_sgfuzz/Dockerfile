@@ -25,15 +25,6 @@ RUN git clone https://github.com/google/honggfuzz.git $SRC/honggfuzz  && \
     cd $SRC/honggfuzz && \
     git checkout 6f89ccc9c43c6c1d9f938c81a47b72cd5ada61ba 
 
-RUN sed -i 's/int LLVMFuzzerTestOneInput/__attribute__((visibility(\"default\"))) int LLVMFuzzerTestOneInput/' $SRC/honggfuzz/libhfnetdriver/netdriver.c
-RUN sed -i 's/int LLVMFuzzerInitialize/__attribute__((visibility(\"default\"))) int LLVMFuzzerInitialize/' $SRC/honggfuzz/libhfnetdriver/netdriver.c
-
-RUN cd $SRC/honggfuzz && \
-    CFLAGS="-fsanitize=fuzzer-no-link -fsanitize=address" make libhfcommon/libhfcommon.a && \
-    CFLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -DHFND_RECVTIME=1" make libhfnetdriver/libhfnetdriver.a && \
-    mv libhfcommon/libhfcommon.a /usr/lib/libhfcommon.a && \
-    mv libhfnetdriver/libhfnetdriver.a /usr/lib/libhfnetdriver.a
-
 RUN git clone https://github.com/openssl/openssl.git $SRC/openssl && \
     cd $SRC/openssl && git checkout c74188e 
 

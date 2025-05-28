@@ -28,13 +28,6 @@ RUN git clone https://github.com/google/honggfuzz.git $SRC/honggfuzz  && \
 RUN sed -i 's/int LLVMFuzzerTestOneInput/__attribute__((visibility(\"default\"))) int LLVMFuzzerTestOneInput/' $SRC/honggfuzz/libhfnetdriver/netdriver.c
 RUN sed -i 's/int LLVMFuzzerInitialize/__attribute__((visibility(\"default\"))) int LLVMFuzzerInitialize/' $SRC/honggfuzz/libhfnetdriver/netdriver.c
 
-RUN cd $SRC/honggfuzz && \
-    CFLAGS="-fsanitize=fuzzer-no-link -fsanitize=address" make libhfcommon/libhfcommon.a && \
-    CFLAGS="-fsanitize=fuzzer-no-link -fsanitize=address -DHFND_RECVTIME=1" make libhfnetdriver/libhfnetdriver.a && \
-    mv libhfcommon/libhfcommon.a /usr/lib/libhfcommon.a && \
-    mv libhfnetdriver/libhfnetdriver.a /usr/lib/libhfnetdriver.a
-
-
 COPY fuzzing.patch $SRC/fuzzing.patch
 COPY rtsp.dict $SRC/rtsp.dict
 COPY live.2021.08.13.tar.gz $SRC/
