@@ -49,7 +49,7 @@ if [ "${COMPILER:-aflpp}" == "aflppdouble" ] ; then
 fi
 
 
-
+export CFLAGS_SANITIZERS=""
 
 # Set sane AFL++ environment defaults:
 # Be quiet, otherwise this can break some builds.
@@ -158,6 +158,7 @@ echo "CC=$CC"
 echo "CXX=$CXX"
 echo "CFLAGS=$CFLAGS"
 echo "CXXFLAGS=$CXXFLAGS"
+echo "CFLAGS_SANITIZERS=$CFLAGS_SANITIZERS"
 echo "---------------------------------------------------------------"
 
 BUILD_CMD="bash -eux $SRC/build.sh"
