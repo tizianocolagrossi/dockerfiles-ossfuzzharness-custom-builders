@@ -115,6 +115,8 @@ if [ -f $OPTIONS_FILE ]; then
   CUSTOM_LIBFUZZER_OPTIONS=$(parse_options.py $OPTIONS_FILE libfuzzer)
 fi
 
+MULTIDESOCK_MAYBE_PRELOAD=$([[ "$USE_MULTIDESOCK" == "1" ]] && echo "LD_PRELOAD=/usr/lib/desockmulti.so" || echo "")
+
 if [[ "$FUZZING_ENGINE" = afl ]]; then
 
   # Set afl++ environment options.
@@ -154,7 +156,7 @@ if [[ "$FUZZING_ENGINE" = afl ]]; then
   # AFL expects at least 1 file in the input dir.
   echo input > ${CORPUS_DIR}/input
 
-  CMD_LINE="$OUT/afl-fuzz $AFL_FUZZER_ARGS -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) -- $OUT/$FUZZER $*" 
+  CMD_LINE="$MULTIDESOCK_MAYBE_PRELOAD $OUT/afl-fuzz $AFL_FUZZER_ARGS -V $TIMEOUT  -i $CORPUS_DIR -o $FUZZ_OUT $(get_dictionary) -- $OUT/$FUZZER $*" 
 
   echo afl++ setup:
   env|grep AFL_
