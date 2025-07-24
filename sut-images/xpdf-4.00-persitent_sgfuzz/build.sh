@@ -35,3 +35,4 @@ cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" ..
 make -j
 
 find ./xpdf -type f -executable -exec cp "{}" /out/ \;
+cp $(ldd $OUT/fuzz_pdfload | cut -d" " -f3) $OUT

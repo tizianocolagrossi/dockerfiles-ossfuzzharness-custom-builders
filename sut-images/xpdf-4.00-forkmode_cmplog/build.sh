@@ -19,3 +19,4 @@ cd build
 cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" ..
 make -j
 find ./xpdf -type f -executable -exec cp "{}" /out/ \;
+cp $(ldd $OUT/pdftotext | cut -d" " -f3) $OUT
