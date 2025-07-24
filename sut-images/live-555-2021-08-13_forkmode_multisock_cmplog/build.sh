@@ -5,8 +5,8 @@ export CPLUSPLUS_COMPILER=$CXX
 
 export CXXFLAGS=$(echo "$CXXFLAGS" | awk '{for (i=1; i<=NF; i++) if (!seen[$i]++) printf "%s ", $i}')
 export CFLAGS=$(echo "$CFLAGS" | awk '{for (i=1; i<=NF; i++) if (!seen[$i]++) printf "%s ", $i}')
-export CXXFLAGS="${CXXFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
-export CFLAGS="${CFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
+# export CXXFLAGS="${CXXFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
+# export CFLAGS="${CFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
 
 export CXXFLAGS="${CXXFLAGS//-gline-tables-only }"
 export CXXFLAGS="${CXXFLAGS//-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION/ }"
