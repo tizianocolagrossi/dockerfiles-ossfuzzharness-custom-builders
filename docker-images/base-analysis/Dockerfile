@@ -13,8 +13,27 @@
 # limitations under the License.
 #
 ################################################################################
+
+# Using multi-stage build to copy some LLVM binaries needed in the runner image.
+FROM osvaldo/oss-base-clang-10 AS base-clang-10
+FROM osvaldo/oss-base-clang AS base-clang
+
+
 FROM osvaldo/oss-base-image
 RUN apt-get update && apt-get install -y git ssh
+
+# Copy the binaries needed for code coverage and crash symbolization.
+COPY --from=base-clang /usr/bin/llvm-cov-13 \
+     /usr/bin/llvm-profdata-13 \
+     /usr/bin/llvm-symbolizer-13 \
+     /usr/local/bin/
+
+COPY --from=base-clang /src/desockmulti/desockmulti.so /usr/lib/desockmulti.so
+
+COPY --from=base-clang-10 /usr/bin/llvm-cov-10 \
+     /usr/bin/llvm-profdata-10 \
+     /usr/bin/llvm-symbolizer-10 \
+     /usr/local/bin/
 
 #RUN sudo sysctl -w kernel.core_pattern="core"
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
