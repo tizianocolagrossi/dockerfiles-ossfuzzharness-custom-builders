@@ -103,6 +103,7 @@ fi
 
 
 for build in $builds; do
+  per_build_sanitizers="$sanitizers"
   compiler_chosed=""
   if [ "$compiler" == "auto" ] ; then 
     if [ "$build" == "aflpp" ] ; then
@@ -113,21 +114,26 @@ for build in $builds; do
     fi
     if [ "$build" == "codecov" ] ; then
       compiler_chosed="aflpp"
-      sanitizers="$sanitizers coverage"
+      per_build_sanitizers="coverage debug" ## only coverage
     fi
     if [ "$build" == "enumcov" ] ; then
       compiler_chosed="aflppdouble"
-      sanitizers="$sanitizers enumcov"
+      per_build_sanitizers="enumcov debug"
+    fi
+    if [ "$build" == "code-enum-cov" ] ; then
+      compiler_chosed="aflppdouble"
+      per_build_sanitizers="enumcov coverage debug"
     fi
     if [ "$build" == "enumetric" ] || \
     [ "$build" == "enumetric++" ] || \
     [ "$build" == "enumetricbb++" ] || \
     [ "$build" == "enumetric_full" ]  ; then
       compiler_chosed="aflppdouble"
+      per_build_sanitizers="$sanitizers debug"
     fi
     if [ "$build" == "manual_analysis" ] ; then
         compiler_chosed="aflpp"
-        sanitizers="$sanitizers debug"
+        per_build_sanitizers="$sanitizers debug"
     fi
   else
     compiler_chosed=$compiler
@@ -136,14 +142,14 @@ for build in $builds; do
 
   # Display selected options
   echo "Compiler: $compiler_chosed"
-  echo "Sanitizers: $sanitizers"
+  echo "Sanitizers: $per_build_sanitizers"
   echo "Fuzzing Mode: $fuzzing_mode"
   echo "Build: $build"
   echo "Project Path: $project_path"
   echo ""
 
   sanitizers_env=""
-  for sanitizer in $sanitizers; do
+  for sanitizer in $per_build_sanitizers; do
     if [[ "$sanitizer" == "asan" ]] ; then
         sanitizers_env="$sanitizers_env address"
     fi
@@ -157,8 +163,8 @@ for build in $builds; do
 
   shift
 
-  sanitizer_divided="${sanitizers// /_}"
-  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7/$project_name/"$build"_"$sanitizer_divided"/
+  sanitizer_divided="${per_build_sanitizers// /_}"
+  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7/$project_name/$build/
 #   echo $build_dir
 #   echo $sanitizers
 #   echo $sanitizer_divided
@@ -173,7 +179,7 @@ for build in $builds; do
   mkdir -p $build_dir
 
   docker run -it --rm \
-    --env SANITIZERS="$sanitizers" \
+    --env SANITIZERS="$per_build_sanitizers" \
     --env FUZZINGMODE="$fuzzing_mode" \
     --env COMPILER="$compiler_chosed" \
     --env BUILDTYPE="$build" \
