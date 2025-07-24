@@ -74,7 +74,7 @@ perform_task() {
     shift
     
     PRIVILEGED_FLAG=$([[ "$PRIVILEGED" == "1" ]] && echo "--privileged" || echo "")
-    MULTIDESOCK_FLAG=$([[ "$MULTIDESOCK" == "1" ]] && echo "-e LD_PRELOAD=/usr/lib/desockmulti.so" || echo "")
+    MULTIDESOCK_FLAG=$([[ "$MULTIDESOCK" == "1" ]] && echo "-e USE_MULTIDESOCK=1" || echo "")
     FUZZ_PORT_FLAG=$([[ "$FUZZ_PORT" != "0" ]] && echo "-e HFND_TCP_PORT=$FUZZ_PORT" || echo "")
 
     if [[ "$fuzzing_engine" != "afl" && "$fuzzing_engine" != "libafl" && "$fuzzing_engine" != "sgfuzz" ]]; then
@@ -136,9 +136,9 @@ in_round (){
 ROUND_COUNTER=0
 
 COUNTER_OFFSET=0
-TIMEOUT="15m"
-DELTA="1"
-RUN="2"
+TIMEOUT="1h"
+DELTA="5"
+RUN="1"
 
 
 
@@ -192,11 +192,28 @@ next_round() {
 next_round
 PRIVILEGED=1
 FUZZER=testOnDemandRTSPServer
-FUZZING_ENGINE=sgfuzz
-SUT=live-555-2021-08-13_sgfuzz
-FUZZ_PORT=8554
+FUZZING_ENGINE=afl
+SUT=live-555-2021-08-13_forkmode_multisock_cmplog
 MULTIDESOCK=1
-in_round sgfuzz          1 
+in_round aflpp          0 
+in_round enumetric      1
+in_round enumetric++    2
+in_round enumetricbb++  3
+in_round enumetric_full 4
+
+next_round
+PRIVILEGED=1
+FUZZER=openssl
+FUZZING_ENGINE=afl
+SUT=openssl-1e08f3_forkmode_multisock
+MULTIDESOCK=1
+in_round aflpp          0 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+in_round enumetric      1 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+in_round enumetric++    2 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+in_round enumetricbb++  3 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+in_round enumetric_full 4 "s_server -key /out/key.pem -cert /out/cert.pem -4 -no_anti_replay"
+
+
 
 
 

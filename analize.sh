@@ -4,10 +4,12 @@
 
 # Usage function
 usage() {
-    echo "Usage: $0 [-c -s] -o <output_path>  <coverage-build_path> <deduplication-build_path>"
+    echo "Usage: $0 [-c -s -m -a <sut args> ] -o <output_path>  <coverage-build_path> <deduplication-build_path>"
     echo "  -c    request code coverage data"
     echo "  -e    request enum coverage data"
+    echo "  -m    multidesock enabled"
     echo "  -o    output directory"
+    echo "  -a    sut args"
     echo "  <coverage-build_path> Path to the fuzzer used to collect coverage data"
     echo "  <deduplication-build_path> Path to the suzzer used to deduplicat crashes"
     exit 1
@@ -19,15 +21,19 @@ current_uid=$(id -u)
 # Default values
 coverage_profile_enabled=false
 enum_profile_enabled=false
+multidesock_enabled=false
 output_dir=""
+sut_args=""
 
 
 # Parse options
-while getopts "ceo:" opt; do
+while getopts "cemo:a:" opt; do
     case $opt in
         c) coverage_profile_enabled="true" ;;
         e) enum_profile_enabled="true" ;;
+        m) multidesock_enabled="true" ;;
         o) output_dir="$OPTARG" ;;
+        a) sut_args="$OPTARG" ;;
         *) usage ;;
     esac
 done
@@ -77,6 +83,7 @@ fi
 echo "Code coverage requested: $coverage_profile_enabled"
 echo "Enum coverage requested: $enum_profile_enabled"
 echo "Output dir: $output_dir"
+echo "SUT args: $sut_args"
 
 echo "Fuzzer: $FUZZER"
 echo "Fuzzer build for deduplication: $DEDUP_BUILD"
@@ -88,7 +95,9 @@ docker run -it --rm --shm-size=1gb \
   -v $DEDUP_BUILD:/dedup_build \
   -v $ANALYSIS_BUILD:/out \
   -e FUZZ_OUT_REAL_PATH=$output_dir \
+  -e SUT_ARGS="$sut_args" \
   -e COVERAGE_PROFILE=$coverage_profile_enabled  \
   -e ENUMERATION_PROFILE=$enum_profile_enabled  \
+  -e MULTIDESOCK=$multidesock_enabled \
   -e OUTUID=$(id -u) -e OUTGID=$(id -g) \
   -t osvaldo/oss-base-analysis analyze $FUZZER
