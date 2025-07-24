@@ -6,7 +6,7 @@ usage() {
     echo "  -c    Compiler (e.g., aflpp, aflppdouble, clang, sgfuzz, auto) default is auto ans is used for multiple instrumentations"
     echo "  -s    Sanitizers (e.g., asan, ubsan, coverage, enumcoverage, debug)"
     echo "  -f    Fuzzing mode (e.g. fork, persistent)"
-    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full, sgfuzz, manual_analysis, codecov ) will be also the name of the directory"
+    echo "  -b    Builds (e.g., clang, aflpp, enumetric, enumetric++, enumetricbb++, enumetric_full, sgfuzz, manual_analysis, codecov, enumcov ) will be also the name of the directory"
     echo "  <project_path> Path to the project to build"
     exit 1
 }
@@ -115,6 +115,10 @@ for build in $builds; do
       compiler_chosed="aflpp"
       sanitizers="$sanitizers coverage"
     fi
+    if [ "$build" == "enumcov" ] ; then
+      compiler_chosed="aflppdouble"
+      sanitizers="$sanitizers enumcov"
+    fi
     if [ "$build" == "enumetric" ] || \
     [ "$build" == "enumetric++" ] || \
     [ "$build" == "enumetricbb++" ] || \
@@ -153,10 +157,16 @@ for build in $builds; do
 
   shift
 
-  build_dir=$HOME/sut-docker/aflppdouble-v0.2.7/$project_name/$build/
+  sanitizer_divided="${sanitizers// /_}"
+  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7/$project_name/"$build"_"$sanitizer_divided"/
+#   echo $build_dir
+#   echo $sanitizers
+#   echo $sanitizer_divided
+#   exit -1
   if [ -d "$build_dir" ]; then
-      echo "$build_dir does exist."
-      exit 1
+      echo "$build_dir does exist. Deleting it"
+      rm -r $build_dir
+    #   exit 1
   fi
   
   echo "$sanitizers_env"
@@ -169,7 +179,7 @@ for build in $builds; do
     --env BUILDTYPE="$build" \
     --env BUILD_UID=$current_uid \
     --env SANITIZER="$sanitizers_env" \
-    -v $build_dir:/out -t osvaldo/$project_name
+    -v $build_dir:/out -t osvaldo/$project_name #/bin/bash
 
 done
 
