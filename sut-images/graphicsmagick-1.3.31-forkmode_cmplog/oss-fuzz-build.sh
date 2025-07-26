@@ -3,9 +3,6 @@
 # This is intended to be run from OSS-Fuzz's build environment. We intend to
 # eventually refactor it to be easy to run locally.
 
-export CFLAGS="$CFLAGS -lrt -lpthread"
-export CXXFLAGS="$CXXFLAGS -lrt -lpthread"
-export LDFLAGS="$LDFLAGS -lrt -lpthread"
 # build zlib
 echo "=== Building zlib..."
 pushd "$SRC/zlib"
