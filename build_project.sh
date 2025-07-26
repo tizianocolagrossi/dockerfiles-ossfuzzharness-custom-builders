@@ -20,7 +20,8 @@ sanitizers=""
 fuzzing_mode="persistent"
 builds=""
 project_path=""
-ask_confirmation="true"
+# ask_confirmation="true"
+ask_confirmation="false"
 
 # Parse options
 while getopts "yc:s:f:b:" opt; do

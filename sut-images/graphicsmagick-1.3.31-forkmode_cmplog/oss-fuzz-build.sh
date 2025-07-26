@@ -17,7 +17,7 @@ echo "=== Building xz..."
 pushd "$SRC/xz"
 make clean || echo "no clean"
 ./autogen.sh
-PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure --disable-xz --disable-lzmadec --disable-lzmainfo --disable-lzma-links --disable-scripts --disable-doc --enable-static --disable-shared  --with-pic=yes --prefix="$WORK"
+CFLAGS="$CFLAGS -fPIC" PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure --disable-xz --disable-lzmadec --disable-lzmainfo --disable-lzma-links --disable-scripts --disable-doc --enable-static --disable-shared  --with-pic=yes --prefix="$WORK"
 make -j$(nproc)
 make install
 popd
@@ -94,6 +94,6 @@ popd
 # freetype-config is in $WORK/bin so we temporarily add $WORK/bin to the path
 echo "=== Building GraphicsMagick..."
 make clean || echo "no clean"
-PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include/libpng16 -I$WORK/include/freetype2 -I$WORK/include" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --prefix="$WORK" --enable-static --disable-shared  --without-perl --with-quantum-depth=16
+PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include/libpng16 -I$WORK/include/freetype2 -I$WORK/include $CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --prefix="$WORK" --enable-static --disable-shared  --without-perl --with-quantum-depth=16
 make "-j$(nproc)"
 make install
