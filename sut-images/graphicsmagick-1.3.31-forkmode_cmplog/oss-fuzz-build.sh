@@ -3,6 +3,9 @@
 # This is intended to be run from OSS-Fuzz's build environment. We intend to
 # eventually refactor it to be easy to run locally.
 
+export CFLAGS="$CFLAGS -lrt -lpthread"
+export CXXFLAGS="$CXXFLAGS -lrt -lpthread"
+export LDFLAGS="$LDFLAGS -lrt -lpthread"
 # build zlib
 echo "=== Building zlib..."
 pushd "$SRC/zlib"
@@ -35,7 +38,7 @@ popd
 echo "=== Building libjpeg..."
 pushd "$SRC/libjpeg-turbo"
 make clean || echo "no clean"
-CFLAGS="$CFLAGS -fPIC" cmake . -DCMAKE_INSTALL_PREFIX="$WORK" -DENABLE_STATIC=on -DENABLE_SHARED=on -DWITH_JPEG8=1 -DWITH_SIMD=0
+CFLAGS="$CFLAGS -fPIC" CMAKE_C_FLAGS="$CFLAGS" cmake . -DCMAKE_INSTALL_PREFIX="$WORK" -DENABLE_STATIC=1 -DENABLE_SHARED=0 -DWITH_JPEG8=1 -DWITH_SIMD=0 
 make -j$(nproc)
 make install
 popd
@@ -45,7 +48,7 @@ echo "=== Building libtiff..."
 pushd "$SRC/libtiff"
 make clean || echo "no clean"
 autoreconf -fiv
-PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --enable-static --disable-shared  --prefix="$WORK"
+PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include" CFLAGS="$CXXFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --enable-static --disable-shared  --prefix="$WORK"
 make -j$(nproc)
 make install
 popd
@@ -55,7 +58,7 @@ echo "=== Building lcms..."
 pushd "$SRC/Little-CMS"
 make clean || echo "no clean"
 autoreconf -fiv
-PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --enable-static --disable-shared  --prefix="$WORK"
+PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include" CFLAGS="$CXXFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --enable-static --disable-shared  --prefix="$WORK"
 make -j$(nproc)
 make install
 popd
@@ -94,6 +97,6 @@ popd
 # freetype-config is in $WORK/bin so we temporarily add $WORK/bin to the path
 echo "=== Building GraphicsMagick..."
 make clean || echo "no clean"
-PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="-I$WORK/include/libpng16 -I$WORK/include/freetype2 -I$WORK/include $CXXFLAGS" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --prefix="$WORK" --enable-static --disable-shared  --without-perl --with-quantum-depth=16
+PATH=$WORK:$WORK/bin:$PATH PKG_CONFIG_PATH="$WORK/lib/pkgconfig" ./configure CPPFLAGS="$CXXFLAGS -I$WORK/include/libpng16 -I$WORK/include/freetype2 -I$WORK/include" CFLAGS="$CFLAGS" LDFLAGS="${LDFLAGS:-} -L$WORK/lib" --prefix="$WORK" --enable-static --disable-shared  --without-perl --with-quantum-depth=16
 make "-j$(nproc)"
 make install

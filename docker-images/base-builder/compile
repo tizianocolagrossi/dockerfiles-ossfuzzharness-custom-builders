@@ -98,9 +98,9 @@ for sanitizer in $SANITIZERS ; do
     fi
     if [ "$sanitizer" == "enumcov" ] ; then 
         echo "SETTING ENUMCOV"
-        export LDFLAGS="-lrt -pthread"
-        export CFLAGS="-lrt -pthread -g $CFLAGS"
-        export CXXFLAGS="-lrt -pthread -g $CFLAGS"
+        export CC="$SRC/AFLppDoubleMap/afl-clang-fast -lrt -pthread -g"
+        export CXX="$SRC/AFLppDoubleMap/afl-clang-fast++ -lrt -pthread -g"
+        export CCC="$SRC/AFLppDoubleMap/afl-clang-fast++ -lrt -pthread -g"
         export ENUMETRIC_DUMP=1
     fi
     if [ "$sanitizer" == "debug" ] ; then 
