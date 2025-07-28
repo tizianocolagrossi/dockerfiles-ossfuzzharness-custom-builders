@@ -26,12 +26,10 @@ git reset --hard
 git fetch --all -pP
 git checkout a817631
 git apply $SRC/fuzzers_makepile.patch
-git apply $SRC/FuzzTarget.patch
 popd
 
 pushd $SRC/libpcap
-git fetch --all -pP
-git checkout c4b4113befa5d01fbe3143e3ace639129d03f85d
+
 popd
 
 # pkg-config --libs --cflags dbus-1
