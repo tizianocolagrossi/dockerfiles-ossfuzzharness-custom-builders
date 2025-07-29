@@ -67,6 +67,42 @@ else
     exit 1
 fi
 
+append_creation_date() {
+    file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        echo "File does not exist: $file"
+        return
+    fi
+
+    # Get creation time in epoch
+    creation_epoch_formatted=$(stat -c "time:%W" "$file")
+    creation_epoch=$(stat -c "%W" "$file")
+
+    # If creation time is zero (unknown), fallback to modification time
+    if [[ "$creation_epoch" -eq 0 ]]; then
+        creation_epoch_formatted=$(stat -c "time:%Y" "$file")
+    fi
+
+    # Extract filename components
+    filename=$(basename -- "$file")
+    location=$(dirname -- "$file")
+    extension="${filename##*.}"
+    basename="${filename%.*}"
+
+    # id:000002,sig:04,src:000061,time:11657035,execs:3610181,op:havoc,rep:4
+    # Handle files without extension
+    if [[ "$filename" == "$extension" ]]; then
+        new_filename="id:${filename},sig:00,src:000000,${creation_epoch_formatted},execs:0000000,op:havoc,rep:0"
+    else
+        new_filename="id:${basename},sig:00,src:000000,${creation_epoch_formatted},execs:0000000,op:havoc,rep:0.${extension}"
+    fi
+
+    # Rename the file
+    mv "$file" "$location/$new_filename"
+    echo "Renamed to: $new_filename"
+}
+
 run_libfuzzer() {
 
     # Construct command with optional dictionary
@@ -112,7 +148,76 @@ run_libfuzzer() {
     # Make it executable
     chmod +x bashscript.sh
 
-    taskset -c $CPUIDBIND bashscript.sh
+    OUT_FILE="$OUTPUT_DIR/default/fuzzer_stats"
+    start_time=$(date +%s)
+
+    # Initialize fuzzer_stats
+    : > "$OUT_FILE"
+    taskset -c $CPUIDBIND stdbuf -oL -eL bashscript.sh 2>&1 | while IFS= read -r line; do
+        # Extract using regex-friendly tools
+        echo "$line"
+        cov=$(echo "$line" | grep -oP 'cov: \K[0-9]+')
+        corp=$(echo "$line" | grep -oP 'corp: \K[0-9]+')
+        execs=$(echo "$line" | grep -oP 'exec/s \K[0-9]+')
+        timeout=$(echo "$line" | grep -oP 'oom/timeout/crash: [0-9]+/\K[0-9]+')
+        crash=$(echo "$line" | grep -oP 'oom/timeout/crash: [0-9]+/[0-9]+/\K[0-9]+')
+        timestamp=$(date +%s)
+        if [[ -n "$cov" && -n "$corp" && -n "$execs" && -n "$timeout" && -n "$crash" ]]; then
+            # Write to fuzzer_stats
+            {
+                echo "start_time        : $start_time"
+                echo "last_update       : $timestamp"
+                echo "run_time          : -1"
+                echo "fuzzer_pid        : -1"
+                echo "cycles_done       : -1"
+                echo "cycles_wo_finds   : -1"
+                echo "time_wo_finds     : -1"
+                echo "fuzz_time         : -1"
+                echo "calibration_time  : -1"
+                echo "cmplog_time       : -1"
+                echo "sync_time         : -1"
+                echo "trim_time         : -1"
+                echo "execs_done        : -1"
+                echo "execs_per_sec     : $execs"
+                echo "execs_ps_last_min : -1"
+                echo "corpus_count      : $corp"
+                echo "corpus_favored    : -1"
+                echo "corpus_found      : $corp"
+                echo "corpus_imported   : -1"
+                echo "corpus_variable   : -1"
+                echo "max_depth         : -1"
+                echo "cur_item          : -1"
+                echo "pending_favs      : -1"
+                echo "pending_total     : $corp"
+                echo "stability         : -1"
+                echo "bitmap_cvg        : -1"
+                echo "saved_crashes     : $crash"
+                echo "saved_hangs       : $timeout"
+                echo "last_find         : -1"
+                echo "last_crash        : -1"
+                echo "last_hang         : -1"
+                echo "execs_since_crash : -1"
+                echo "exec_timeout      : -1"
+                echo "slowest_exec_ms   : -1"
+                echo "peak_rss_mb       : -1"
+                echo "cpu_affinity      : -1"
+                echo "edges_found       : -1"
+                echo "total_edges       : -1"
+                echo "var_byte_count    : -1"
+                echo "havoc_expansion   : -1"
+                echo "auto_dict_entries : -1"
+                echo "testcache_size    : -1"
+                echo "testcache_count   : -1"
+                echo "testcache_evict   : -1"
+                echo "afl_banner        : sgfuzz"
+                echo "afl_version       : sgfuzz"
+                echo "target_mode       : sgfuzz" 
+                echo "command_line      : none"
+            } > "$OUT_FILE"
+
+            echo "[+] fuzzer_stats written to $OUT_FILE"
+        fi
+    done
 
 }
 
@@ -121,6 +226,12 @@ echo "add args $ADDITIONAL_SUT_ARGS"
 run_libfuzzer
 
 cd $OUTPUT_DIR
+
+for c in $CRASHES* ; do
+    echo $c
+    append_creation_date $c
+done
+
 tar --create --gzip --preserve-permissions --file=fuzz_out.tar.gz ./*
 chown -R $OUTUID:$OUTGID $OUTPUT_DIR
 ls -l

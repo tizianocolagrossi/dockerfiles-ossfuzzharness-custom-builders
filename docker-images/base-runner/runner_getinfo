@@ -1,0 +1,64 @@
+#!/bin/bash
+
+OUT_FILE="fuzzer_stats"
+start_time=$(date +%s)
+execs_total=0
+cycles_done=0
+
+# Initialize fuzzer_stats
+: > "$OUT_FILE"
+
+stdbuf -oL -eL $1 2>&1 | while IFS= read -r line; do
+    if [[ "$line" =~ ^#[0-9]+[[:space:]]+NEW[[:space:]]+cov:\ ([0-9]+)[[:space:]]+ft:\ ([0-9]+)[[:space:]]+corp:\ ([0-9]+)/([0-9]+)b[[:space:]]+lim:\ ([0-9]+)[[:space:]]+exec/s:\ ([0-9]+)[[:space:]]+rss:\ ([0-9]+)Mb[[:space:]]+states:\ ([0-9]+)[[:space:]]+leaves:\ ([0-9]+)[[:space:]]+L:\ ([0-9]+)/([0-9]+)[[:space:]]+MS:\ ([0-9]+)[[:space:]]+(.*)$ ]]; then
+
+        cov="${BASH_REMATCH[1]}"
+        ft="${BASH_REMATCH[2]}"
+        corp_entries="${BASH_REMATCH[3]}"
+        corp_size="${BASH_REMATCH[4]}"
+        exec_timeout="${BASH_REMATCH[5]}"
+        execs_per_sec="${BASH_REMATCH[6]}"
+        rss="${BASH_REMATCH[7]}"
+        states="${BASH_REMATCH[8]}"
+        leaves="${BASH_REMATCH[9]}"
+        last_path_len="${BASH_REMATCH[10]}"
+        max_path_len="${BASH_REMATCH[11]}"
+        mutation_count="${BASH_REMATCH[12]}"
+        mutation_strategies="${BASH_REMATCH[13]}"
+        timestamp=$(date +%s)
+
+        # Update counters
+        ((execs_total += execs_per_sec))
+        ((cycles_done++))
+
+        cat > "$OUT_FILE" <<EOF
+start_time              : $start_time
+last_update             : $timestamp
+cycles_done             : $cycles_done
+execs_done              : $execs_total
+execs_per_sec           : $execs_per_sec
+paths_total             : $corp_entries
+paths_found             : 0
+paths_imported          : 0
+max_depth               : $max_path_len
+cur_path                : $last_path_len
+pending_favs            : 0
+pending_total           : 0
+variable_paths          : 0
+stability               : 100
+bitmap_cvg              : $cov
+unique_crashes          : 0
+unique_hangs            : 0
+last_path_time          : $timestamp
+last_crash_time         : 0
+last_hang_time          : 0
+exec_timeout            : $exec_timeout
+rss_mb                  : $rss
+corp_count              : $corp_entries
+corp_size               : $corp_size
+mutation_strategies     : $mutation_strategies
+states_discovered       : $states
+leaves_discovered       : $leaves
+EOF
+
+    fi
+done

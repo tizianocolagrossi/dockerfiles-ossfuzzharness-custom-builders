@@ -65,6 +65,7 @@ RUN mkdir -p $FUZZ_OUT
 COPY download_corpus \
     run_fuzzer \
     run_libfuzzer \
+    runner_getinfo \
     parse_options.py \
     targets_list \
     /usr/local/bin/
