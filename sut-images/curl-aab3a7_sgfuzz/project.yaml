@@ -1,0 +1,12 @@
+homepage: "https://curl.haxx.se/"
+language: c++
+primary_contact: "daniel@haxx.se"
+sanitizers:
+  - address
+  - undefined
+  - memory
+fuzzing_engines:
+  - afl
+architectures:
+  - x86_64
+main_repo: 'https://github.com/curl/curl.git'
