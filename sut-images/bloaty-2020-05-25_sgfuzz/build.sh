@@ -15,11 +15,12 @@
 #
 ################################################################################
 
-cd $WORK
 
+cd $SRC/bloaty
 python3 /src/SGFuzz/sanitizer/State_machine_instrument.py .
 
+cd $WORK
 cmake -G Ninja -DBUILD_TESTING=false $SRC/bloaty
 ninja -j$(nproc)
 cp fuzz_target $OUT
-zip -j $OUT/fuzz_target_seed_corpus.zip $SRC/bloaty/tests/testdata/fuzz_corpus/*
+# zip -j $OUT/fuzz_target_seed_corpus.zip $SRC/bloaty/tests/testdata/fuzz_corpus/*
