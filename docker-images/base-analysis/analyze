@@ -1,9 +1,76 @@
 #!/bin/bash
-# Split the string based on " @@ "
+
+# --- Parse SUT_ARGS into pre and post "@@" parts ---
 pre_testcase_args="${SUT_ARGS%% @@*}"
 post_testcase_args="${SUT_ARGS##*@@ }"
 
-export ASAN_OPTIONS="detect_leaks=0"
+# --- Constants and Environment Setup ---
+export PATH=$OUT:$PATH
+export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+export AFL_SKIP_CPUFREQ=1
+export AFL_TRY_AFFINITY=1
+export AFL_FAST_CAL=1
+export AFL_CMPLOG_ONLY_NEW=1
+export AFL_FORKSRV_INIT_TMOUT=30000
+export AFL_IGNORE_PROBLEMS=1
+export AFL_IGNORE_UNKNOWN_ENVS=1
+# Destination directory where the symbolic links will be created
+SGFUZZ_KIND=0
+CRASHES=$FUZZ_OUT/crashes/
+DEST_DIR="/lib/x86_64-linux-gnu/"
+QUEUE_TEST_CASE=$FUZZ_OUT/queue/*
+STDIN_REDIRECT=$([[ "$MULTIDESOCK" == "true" ]] && echo "true" || echo "false")
+
+FUZZER=$1
+export FUZZER=$FUZZER
+shift
+
+
+sysctl -w vm.mmap_rnd_bits=28
+set -euo pipefail
+trap 'echo "FAILED at line $LINENO"; exit 1' ERR
+
+# --- Create symlinks for libraries ---
+create_symlinks() {
+  local src_dir="$1"
+  for l in $src_dir/lib* ; do 
+    ln -s $(realpath $l) $DEST_DIR || echo $l already present
+    echo created link $l in $DEST_DIR
+  done
+}
+
+create_symlinks $DEDUP_BUILD
+
+# --- Set workdir ---
+cd $OUT
+
+# --- Unpack fuzzing output and copy stats files ---
+pushd $FUZZ_OUT
+if [[ -f "fuzz_out.zip" ]]; then
+  unzip -o fuzz_out.zip
+else
+  echo "No fuzz_out.zip Exiting..."
+  exit 1
+fi
+
+if [[ -f "fuzz_out.tar.gz" ]]; then
+  SGFUZZ_KIND=1
+  echo "Extracting fuzz_out.tar.gz..."
+  tar -xzf fuzz_out.tar.gz
+fi
+
+if [ -d "./default" ]; then
+    echo "AFL like output detected moved."
+    QUEUE_TEST_CASE="$FUZZ_OUT/default/queue/*"
+    rm -r $FUZZ_OUT/default/crashes/README.txt
+    CRASHES="$FUZZ_OUT/default/crashes/"
+    cp ./default/fuzzer_stats .
+    cp ./default/plot_data .
+fi
+popd
+
+# --- LD_PRELOAD for desockmulti if needed ---
+# --- Run afltriage with multiple strategies ---
 
 # Function to run afltriage with specified parameters
 run_afltriage() {
@@ -18,88 +85,13 @@ run_afltriage() {
             afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args
         fi
     else
-        echo "Directory '$output_dir' already exists. Skipping afltriage for '$strategy'."
+        echo "Skipping '$strategy': output directory exists."
     fi
 }
 
-sysctl -w vm.mmap_rnd_bits=28
+# remember in install_deps.sh vv
+# ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
 
-# export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
-# export AFL_SKIP_CPUFREQ=1
-# export AFL_TRY_AFFINITY=1
-# export AFL_FAST_CAL=1
-# export AFL_CMPLOG_ONLY_NEW=1
-# export AFL_FORKSRV_INIT_TMOUT=30000
-# export AFL_IGNORE_PROBLEMS=1
-# export AFL_IGNORE_UNKNOWN_ENVS=1
-
-# Destination directory where the symbolic links will be created
-DEST_DIR="/lib/x86_64-linux-gnu/"
-SGFUZZ_KIND=0
-
-STDIN_REDIRECT=$([[ "$MULTIDESOCK" == "true" ]] && echo "true" || echo "false")
-
-# Iterate over all files in the provided directory that start with 'lib'
-for file in $SOURCE_DIR/lib*; do
-  if [ -f "$file" ]; then
-    # Extract the base name of the file
-    base_name=$(basename "$file")
-
-    # Check if the symbolic link already exists
-    if [ ! -e "$DEST_DIR/$base_name" ]; then
-      # Create a symbolic link in the destination directory
-      ln -s "$file" "$DEST_DIR/$base_name"
-      echo "Created symlink for $base_name"
-    else
-      echo "Symlink for $base_name already exists"
-    fi
-  fi
-done
-
-# Destination directory where the symbolic links will be created
-for l in $DEDUP_BUILD/lib*; do echo $l; ln -s $(realpath $l) /lib/x86_64-linux-gnu/ ; done
-
-export PATH=$OUT:$PATH
-cd $OUT
-
-FUZZER=$1
-shift
-
-QUEUE_TEST_CASE=$FUZZ_OUT/queue/*
-CRASHES=$FUZZ_OUT/crashes/
-
-
-# entry unzip
-pushd $FUZZ_OUT
-unzip  fuzz_out.zip
-if [[ -f "fuzz_out.tar.gz" ]]; then
-  echo "fuzz_out.tar.gz exists."
-  SGFUZZ_KIND=1
-
-  echo "Untarring fuzz_out.tar.gz..."
-  tar -xzf fuzz_out.tar.gz
-  echo "Untarring complete."
-fi
-
-ls
-
-if [ -d "./default" ]; then
-    echo "AFL like output detected moved."
-    QUEUE_TEST_CASE="$FUZZ_OUT/default/queue/*"
-    rm -r $FUZZ_OUT/default/crashes/README.txt
-    CRASHES="$FUZZ_OUT/default/crashes/"
-    cp ./default/fuzzer_stats .
-    cp ./default/plot_data .
-fi
-
-popd
-
-# Ensure timeout is a bit larger than 1sec as some of the OSS-Fuzz fuzzers
-# are slower than this.
-# LIBAFL_FUZZER_ARGS="-t 5000"
-
-# # remember in install_deps.sh vv
-# # ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
 if [ "$MULTIDESOCK" = "true" ]; then
   export LD_PRELOAD=/usr/lib/desockmulti.so
 fi
@@ -114,40 +106,64 @@ done
 
 unset LD_PRELOAD
 
+# --- Coverage / Enumeration profiling ---
+export ASAN_OPTIONS="detect_leaks=0"
+
+run_testcase() {
+  testcase="$1"
+  fuzzer_path="$OUT/$FUZZER"
+  stdin_redirect="$2"
+  sut_args="$3"
+
+  # --- Parse SUT_ARGS into pre and post "@@" parts ---
+  pre_args="${sut_args%% @@*}"
+  post_args="${sut_args##*@@ }"
+
+  name=$(basename "$testcase")
+  export LLVM_PROFILE_FILE="coverage_${name}.profraw"
+  echo "Running testcase: $name"
+
+  if [[ "$stdin_redirect" == "true" ]]; then
+    timeout 5s $fuzzer_path $sut_args < $testcase 
+  else
+    timeout 5s $fuzzer_path $pre_args $testcase $post_args
+  fi
+
+  ec=$?
+  if [[ $ec -eq 124 ]]; then
+    echo "[TIMEOUT] $name"
+  elif [[ $ec -ne 0 ]]; then
+    echo "[FAIL] $name (code $ec)"
+  else
+    echo "[PASS] $name"
+  fi
+
+  return 0  # <== Suppress actual exit code
+}
+export -f run_testcase
+
+# on exit delete unnecessary data
+
 if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
 
-    if [ "$ENUMERATION_PROFILE" = "true" ] ; then
-      echo "Running for enumprofile"
+    if [[ "$ENUMERATION_PROFILE" == "true" ]]; then
       export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
       $OUT/afl-enumetric-dumper-bitmapshared &
       bitmapshared_pid=$!
-      echo "afl-enumetric-dumper-bitmapshared launched with pid $bitmapshared_pid"
+      echo "Started enumetric bitmap dumper (PID: $bitmapshared_pid)"
       sleep 2
     fi
+
     if [ "$MULTIDESOCK" = "true" ]; then
       export LD_PRELOAD=/usr/lib/desockmulti.so
     fi
+
     if [ ! -e "$FUZZ_OUT/llvmcov.json" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
-      if [ ! -e "$FUZZ_OUT/llvmcov.json" ] ; then
-        echo "$FUZZ_OUT/llvmcov.json not exist"
+      if ! find $FUZZ_OUT/default/queue/ -type f | head -n 10 | parallel --halt never run_testcase {} "$STDIN_REDIRECT" "$SUT_ARGS" ; then
+        echo "[warn] parallel jobs had failures, but continuing..."
       fi
-      for testcase in $QUEUE_TEST_CASE; do
-          echo "running $testcase"
-          testcase_name=$(basename "$testcase")
-          # echo "LLVM_PROFILE_FILE=coverage_${testcase_name}.profraw timeout 5s $OUT/$FUZZER $MAYBE_STDIN_REDIRECT ${testcase_name}"
-          if [ "$STDIN_REDIRECT" = "true" ]; then
-            echo "testcase in stdin"
-            echo "Running OUT/$FUZZER $SUT_ARGS < $testcase"
-            LLVM_PROFILE_FILE=coverage_${testcase_name}.profraw timeout 5s $OUT/$FUZZER $SUT_ARGS < $testcase
-          else
-            echo "testcase in file with args=$SUT_ARGS"
-            
-            echo "Running OUT/$FUZZER $pre_testcase_args $testcase $post_testcase_args"
-            LLVM_PROFILE_FILE=coverage_${testcase_name}.profraw timeout 5s $OUT/$FUZZER $pre_testcase_args $testcase $post_testcase_args
-          fi
-      done
     else
-      echo "SKIP running testcase code coverage file alredy present"
+      echo "Coverage file exists. Skipping test case runs."
     fi
 
     unset LD_PRELOAD
@@ -157,49 +173,26 @@ if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
       kill $bitmapshared_pid
     fi
 
-    if [ "$COVERAGE_PROFILE" = "true" ]; then
-      if [ ! -e $FUZZ_OUT/llvmcov.json ]; then
-        if [ ! -e $FUZZ_OUT/llvmcov_total.json ]; then
-          # llvm-profdata-13 merge -sparse coverage_*.profraw -o coverage.profdata
-          ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
-          llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
+    if [[ "$COVERAGE_PROFILE" == "true" && ! -e "$FUZZ_OUT/llvmcov_total.json" ]]; then
+      echo "Generating merged coverage profile..."
 
-          llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
-
-          python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
-        else
-          echo "$FUZZ_OUT/llvmcov_total.json exist!"
-        fi
-
-      else 
-        echo "$FUZZ_OUT/llvmcov.json exist!"
-      fi
+      ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
+      llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
+      llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
+      python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
     fi
 fi
 
+# --- Cleanup and ownership ---
 
-if [ -d "./default" ]; then
-    cp ./default/fuzzer_stats .
-    cp ./default/plot_data .
+if [[ -d "./default" ]]; then
+  cp ./default/fuzzer_stats ./default/plot_data .
 fi
 
-# on exit delete unnecessary data
-chown -R $OUTUID:$OUTGID $FUZZ_OUT
-cd $FUZZ_OUT
-rm -rf ./default
-rm -rf ./queue
-rm -rf ./hangs
-rm -rf ./crashes
-rm -rf ./.synced
-rm -rf ./fuzzer_setup
-rm -rf ./fuzz_bitmap
-rm -rf ./cmdline
-rm -rf ./coverage_*.profraw
-# rm -rf ./coverage.profdata
-rm -rf ./*.profraw.profdata
-rm -rf $OUT/*.profraw.profdata
-rm -rf $OUT/coverage_*.profraw
-rm -rf $OUT/coverage.profdata
-if [[ "$SGFUZZ_KIND" -eq 1 ]]; then
-  rm -rf ../fuzz_out.tar.gz
-fi
+chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
+cd "$FUZZ_OUT"
+
+rm -rf ./default ./queue ./hangs ./crashes ./.synced ./fuzzer_setup ./fuzz_bitmap ./cmdline
+rm -f ./coverage_*.profraw ./*.profraw.profdata "$OUT"/coverage_*.profraw "$OUT"/*.profraw.profdata "$OUT"/coverage.profdata
+
+[[ "$SGFUZZ_KIND" -eq 1 ]] && rm -f ../fuzz_out.tar.gz

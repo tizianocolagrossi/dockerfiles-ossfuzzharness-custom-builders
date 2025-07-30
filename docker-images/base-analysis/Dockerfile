@@ -20,7 +20,7 @@ FROM osvaldo/oss-base-clang AS base-clang
 
 
 FROM osvaldo/oss-base-image
-RUN apt-get update && apt-get install -y git ssh
+RUN apt-get update && apt-get install -y git ssh parallel
 
 # Copy the binaries needed for code coverage and crash symbolization.
 COPY --from=base-clang /usr/bin/llvm-cov-13 \
