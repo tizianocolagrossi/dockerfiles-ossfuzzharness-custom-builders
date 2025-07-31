@@ -4,12 +4,13 @@
 
 # Usage function
 usage() {
-    echo "Usage: $0 [-c -s -m -a <sut args> ] -o <output_path>  <coverage-build_path> <deduplication-build_path>"
+    echo "Usage: $0 [-c -s -m -a <sut args> -p <cpu_range>] -o <output_path>  <coverage-build_path> <deduplication-build_path>"
     echo "  -c    request code coverage data"
     echo "  -e    request enum coverage data"
     echo "  -m    multidesock enabled"
     echo "  -o    output directory"
     echo "  -a    sut args"
+    echo "  -p    CPU range to use (e.g., 0-3 or 1,3)"
     echo "  <coverage-build_path> Path to the fuzzer used to collect coverage data"
     echo "  <deduplication-build_path> Path to the suzzer used to deduplicat crashes"
     exit 1
@@ -24,16 +25,18 @@ enum_profile_enabled=false
 multidesock_enabled=false
 output_dir=""
 sut_args=""
+cpu_range=""
 
 
 # Parse options
-while getopts "cemo:a:" opt; do
+while getopts "cemo:a:p:" opt; do
     case $opt in
         c) coverage_profile_enabled="true" ;;
         e) enum_profile_enabled="true" ;;
         m) multidesock_enabled="true" ;;
         o) output_dir="$OPTARG" ;;
         a) sut_args="$OPTARG" ;;
+        p) cpu_range="$OPTARG" ;;
         *) usage ;;
     esac
 done
@@ -84,6 +87,7 @@ echo "Code coverage requested: $coverage_profile_enabled"
 echo "Enum coverage requested: $enum_profile_enabled"
 echo "Output dir: $output_dir"
 echo "SUT args: $sut_args"
+echo "CPU Range: $cpu_range"
 
 echo "Fuzzer: $FUZZER"
 echo "Fuzzer build for deduplication: $DEDUP_BUILD"
@@ -100,4 +104,5 @@ docker run -it --rm --shm-size=1gb \
   -e ENUMERATION_PROFILE=$enum_profile_enabled  \
   -e MULTIDESOCK=$multidesock_enabled \
   -e OUTUID=$(id -u) -e OUTGID=$(id -g) \
+  ${cpu_range:+--cpuset-cpus="$cpu_range"} \
   -t osvaldo/oss-base-analysis analyze $FUZZER
