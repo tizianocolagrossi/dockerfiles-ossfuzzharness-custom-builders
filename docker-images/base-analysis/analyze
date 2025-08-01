@@ -161,11 +161,11 @@ run_testcase() {
 
   ec=$?
   if [[ $ec -eq 124 ]]; then
-    echo "[!] [TIMEOUT] $name"
+    echo "[ANALYZER] [!] [TIMEOUT] $name"
   elif [[ $ec -ne 0 ]]; then
-    echo "[!] [FAIL] $name (exit code: $ec)"
+    echo "[ANALYZER] $name (exit code: $ec)"
   else
-    echo "[+] [PASS] $name"
+    echo "[ANALYZER] [Ok] $name"
   fi
 
   return 0  # <== Suppress actual exit code
@@ -195,7 +195,8 @@ if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
 
       echo "[*] Running testcases for coverage/enumeration profiling..."
         echo "[*] cpus available $(cpuset_count)"
-        if ! find $FUZZ_OUT/default/queue/ -type f | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
+        file_count=$(find "$FUZZ_OUT/default/queue/" -type f | wc -l)
+        if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS" >> $FUZZ_OUT/run_testcase.log 2>&1' _ {} ; then
         echo "[!] parallel jobs had failures, but continuing..."
       fi
     else
