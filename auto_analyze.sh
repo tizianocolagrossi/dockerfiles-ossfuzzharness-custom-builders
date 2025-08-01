@@ -4,7 +4,8 @@ COVERAGE_TAG='code-enum-cov'
 DEDUPLICATION_TAG='deduplication'
 ARGS_TAG='args'
 
-CPU_RANGE="64-118"
+# CPU_RANGE="64-118"
+CPU_RANGE="0-4"
 
 OUTPUTS_DIR=/home/tiziano/outputs/
 ANALIZE_SCRIPT_PATH=/home/tiziano/Documents/enumetric-Research/dockerfiles-ossfuzzharness-custom-builders/analize.sh
@@ -138,29 +139,34 @@ for key in "${!analysis_program[@]}"; do
     fi
 done
 
-if [ $DUMMY == 1 ] ; then
-    #dummy
-    echo ""
-else
-    #real
-    # Iterate over SUTs
-    echo "Unique SUTs:"
-    for sut in "${sut_list[@]}"; do
-        echo "- $sut"
-        for fuzz_out_dir in $OUTPUTS_DIR*$sut*; do 
-            coverage_build="${analysis_program["$sut:$COVERAGE_TAG"]}"
-            deduplication_build="${analysis_program["$sut:$DEDUPLICATION_TAG"]}"
-            args="${analysis_program_args["$sut"]}"
 
-            ARGS_FLAG=$([[ "$args" == "" ]] && echo "" || echo " -a \"$args\" ")
-            
+
+
+
+echo "Unique SUTs:"
+for sut in "${sut_list[@]}"; do
+    echo "- $sut"
+    for fuzz_out_dir in $OUTPUTS_DIR*$sut*; do 
+        if [ ! -d "$fuzz_out_dir" ]; then
+            # echo "$fuzz_out_dir not exist"
+            break
+        fi
+        echo "Found output"
+        coverage_build="${analysis_program["$sut:$COVERAGE_TAG"]}"
+        deduplication_build="${analysis_program["$sut:$DEDUPLICATION_TAG"]}"
+        args="${analysis_program_args["$sut"]}"
+        ARGS_FLAG=()
+        [[ -n "$args" ]] && ARGS_FLAG=(-a "$args")
+        CPUS_FLAG=$([[ "$CPU_RANGE" == "" ]] && echo "" || echo "-p $CPU_RANGE")
+        
+        if [ $DUMMY == 1 ] ; then
+            #dummy
             echo "$ANALIZE_SCRIPT_PATH -c -e -o $fuzz_out_dir -p $CPU_RANGE $ARGS_FLAG $coverage_build $deduplication_build"
-        done
+        else
+            #real
+            $ANALIZE_SCRIPT_PATH -c -e "${ARGS_FLAG[@]}" $CPUS_FLAG -o $fuzz_out_dir $coverage_build $deduplication_build
+        fi
     done
-fi
-
-
-
-
+done
 
 
