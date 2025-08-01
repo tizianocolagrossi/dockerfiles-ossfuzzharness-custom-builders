@@ -51,6 +51,8 @@ if [[ $# -eq 2 ]]; then
   FUZZER_BUILD_DEDUP=$(realpath $2)
 else
     echo "Error: You must specify a project path."
+    echo "1: $1"
+    echo "2: $2"
     usage
 fi
 
