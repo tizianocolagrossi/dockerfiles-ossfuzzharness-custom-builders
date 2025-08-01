@@ -39,11 +39,24 @@ trap 'echo "FAILED at line $LINENO"; exit 1' ERR
 # --- Create symlinks for libraries ---
 create_symlinks() {
   local src_dir="$1"
+  created=0
+  skipped=0
   for l in $src_dir/lib* ; do 
-    ln -s $(realpath $l) $DEST_DIR || echo "[!] Skipped (already present): $l"
-    echo "[+] Created symlink: $l → $DEST_DIR"
+    if ln -s $(realpath $l) $DEST_DIR 2>/dev/null ; then
+      # echo "[+] Created symlink: $l → $DEST_DIR"
+      created=$((created + 1))
+    else
+      # echo "[!] Skipped (already present): $l"
+      skipped=$((skipped + 1))
+    fi
   done
+
+  echo "=== Symlink Summary ==="
+  echo "[+] Created: $created"
+  echo "[!] Skipped (already present or failed): $skipped"
 }
+
+
 
 create_symlinks $DEDUP_BUILD
 
@@ -55,7 +68,9 @@ pushd $FUZZ_OUT
 echo "[*] Checking for fuzz output archives..."
 if [[ -f "fuzz_out.zip" ]]; then
   echo "[+] Unpacking fuzz_out.zip..."
-  unzip -o fuzz_out.zip
+  # unzip -o fuzz_out.zip
+  zip_size=$(stat -c%s fuzz_out.zip)
+  pv -s "$zip_size" fuzz_out.zip | bsdtar -x -f - >/dev/null
 else
   echo "[!] fuzz_out.zip not found. Exiting..."
   exit 1
@@ -64,7 +79,8 @@ fi
 if [[ -f "fuzz_out.tar.gz" ]]; then
   echo "[+] Extracting fuzz_out.tar.gz..."
   SGFUZZ_KIND=1
-  tar -xzf fuzz_out.tar.gz
+  # tar -xzf fuzz_out.tar.gz
+  pv -s $(stat -c%s fuzz_out.tar.gz) fuzz_out.tar.gz | tar xzf - >/dev/null
 fi
 
 if [ -d "./default" ]; then
@@ -76,6 +92,7 @@ if [ -d "./default" ]; then
     cp ./default/fuzzer_stats .
     cp ./default/plot_data .
 fi
+chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
 popd
 
 # --- LD_PRELOAD for desockmulti if needed ---
@@ -96,6 +113,7 @@ run_afltriage() {
     else
         echo "[!] Skipping '$strategy': output already exists at '$output_dir'"
     fi
+    chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
 }
 
 # remember in install_deps.sh vv
@@ -172,7 +190,9 @@ if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
       export LD_PRELOAD=/usr/lib/desockmulti.so
     fi
 
-    if [ ! -e "$FUZZ_OUT/llvmcov.json" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
+    if  { [ "$COVERAGE_PROFILE" = "true" ] && [ ! -e "$FUZZ_OUT/llvmcov.json" ]; } || \
+        { [ "$ENUMERATION_PROFILE" = "true" ] && [ "$(stat -c%s "$FUZZ_OUT/default_enumprofile.csv")" -lt 128 ]; }; then
+
       echo "[*] Running testcases for coverage/enumeration profiling..."
         echo "[*] cpus available $(cpuset_count)"
         if ! find $FUZZ_OUT/default/queue/ -type f | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
@@ -192,8 +212,27 @@ if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
     if [[ "$COVERAGE_PROFILE" == "true" && ! -e "$FUZZ_OUT/llvmcov_total.json" ]]; then
 
       echo "[*] Merging .profraw files into coverage.profdata..."
-      ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
-      llvm-profdata-13 merge -sparse temp_coverage_*.profdata -o coverage.profdata
+      # ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
+      # Split raw coverage files into batches of 100
+      batch=0
+      for f in coverage_*.profraw; do
+        [[ -e "$f" ]] || continue
+        files+=("$f")
+        if (( ${#files[@]} == 100 )); then
+          printf "\r - [*] Merging batch $batch"
+          llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata"
+          files=()
+          batch=$((batch + 1))
+        fi
+      done
+      echo ""
+
+      # Handle remaining files
+      if (( ${#files[@]} > 0 )); then
+        llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata"
+      fi
+
+      llvm-profdata-13 merge -sparse batch_*.profdata -o coverage.profdata
       echo "[*] Exporting llvm-cov report to: $FUZZ_OUT/llvmcov.json"
       llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
       echo "[*] Extracting total coverage into: $FUZZ_OUT/llvmcov_total.json"
@@ -213,7 +252,12 @@ chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
 cd "$FUZZ_OUT"
 
 rm -rf ./default ./queue ./hangs ./crashes ./.synced ./fuzzer_setup ./fuzz_bitmap ./cmdline
-rm -f ./coverage_*.profraw ./*.profraw.profdata "$OUT"/coverage_*.profraw "$OUT"/*.profraw.profdata "$OUT"/coverage.profdata
+
+find ./ -maxdepth 1 -name '*.profraw' -delete
+find ./ -maxdepth 1 -name 'batch_*.profdata' -delete
+find "$OUT" -maxdepth 1 -name '*.profraw' -delete
+find "$OUT" -maxdepth 1 -name 'batch_*.profdata' -delete
+find "$OUT" -maxdepth 1 -name 'coverage.profdata' -delete
 
 [[ "$SGFUZZ_KIND" -eq 1 ]] && rm -f ../fuzz_out.tar.gz
 echo "[+] Cleanup completed. Final output owned by $OUTUID:$OUTGID"
