@@ -21,6 +21,12 @@ DEST_DIR="/lib/x86_64-linux-gnu/"
 QUEUE_TEST_CASE=$FUZZ_OUT/queue/*
 STDIN_REDIRECT=$([[ "$MULTIDESOCK" == "true" ]] && echo "true" || echo "false")
 
+cpuset_count() {
+  cpus=$(cat /sys/fs/cgroup/cpuset.cpus 2>/dev/null)
+  # Normalize range (e.g., 0-3,6 -> 0 1 2 3 6)
+  echo "$cpus" | awk -F',' '{for(i=1;i<=NF;i++){if($i~/-/){split($i,a,"-");for(j=a[1];j<=a[2];j++)print j}else print $i}}' | wc -l
+}
+
 FUZZER=$1
 export FUZZER=$FUZZER
 shift
@@ -168,7 +174,8 @@ if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
 
     if [ ! -e "$FUZZ_OUT/llvmcov.json" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
       echo "[*] Running testcases for coverage/enumeration profiling..."
-      if ! find $FUZZ_OUT/default/queue/ -type f | parallel --halt never run_testcase {} "$STDIN_REDIRECT" "$SUT_ARGS" ; then
+        echo "[*] cpus available $(cpuset_count)"
+        if ! find $FUZZ_OUT/default/queue/ -type f | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
         echo "[!] parallel jobs had failures, but continuing..."
       fi
     else
