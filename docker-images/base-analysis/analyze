@@ -229,7 +229,7 @@ coverage_computation() {
           files+=("$f")
           if (( ${#files[@]} == 100 )); then
             printf "\r - [*] Merging batch $batch"
-            llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata"
+            llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata" || echo ""
             files=()
             batch=$((batch + 1))
           fi
@@ -238,7 +238,7 @@ coverage_computation() {
 
         # Handle remaining files
         if (( ${#files[@]} > 0 )); then
-          llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata"
+          llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata" || echo ""
         fi
 
         llvm-profdata-13 merge -sparse batch_*.profdata -o coverage.profdata
