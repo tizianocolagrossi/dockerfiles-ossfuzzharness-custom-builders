@@ -29,7 +29,7 @@ SUT=xpdf-4.00-persitent_cmplog
 SUTNAME=xpdf-4.00-persitent
 analysis_program["$SUTNAME:$COVERAGE_TAG"]="$BASE_TOOLS_PATH/$SUT/code-enum-cov/$FUZZER"
 analysis_program["$SUTNAME:$DEDUPLICATION_TAG"]="$BASE_TOOLS_PATH/$SUT/aflpp/$FUZZER"
-analysis_program_args["$SUTNAME"]=""
+analysis_program_args["$SUTNAME"]="@@"
 
 FUZZER=pdftotext
 SUT=xpdf-4.00-forkmode_cmplog
@@ -43,7 +43,7 @@ SUT=pcapplusplus-a817631_cmplog
 SUTNAME=pcapplusplus-a817631
 analysis_program["$SUTNAME:$COVERAGE_TAG"]="$BASE_TOOLS_PATH/$SUT/code-enum-cov/$FUZZER"
 analysis_program["$SUTNAME:$DEDUPLICATION_TAG"]="$BASE_TOOLS_PATH/$SUT/aflpp/$FUZZER"
-analysis_program_args["$SUTNAME"]=""
+analysis_program_args["$SUTNAME"]="@@"
 
 FUZZER=infotocap
 SUT=ncurses-6.1-forkmode_cmplog
@@ -57,7 +57,7 @@ SUT=libxml2-v2.9.2-persistent_cmplog
 SUTNAME=libxml2-v2.9.2
 analysis_program["$SUTNAME:$COVERAGE_TAG"]="$BASE_TOOLS_PATH/$SUT/code-enum-cov/$FUZZER"
 analysis_program["$SUTNAME:$DEDUPLICATION_TAG"]="$BASE_TOOLS_PATH/$SUT/aflpp/$FUZZER"
-analysis_program_args["$SUTNAME"]=""
+analysis_program_args["$SUTNAME"]="@@"
 
 FUZZER=tiffsplit
 SUT=libtiff-3.9.7-forkmode_cmplog
@@ -85,14 +85,14 @@ SUT=curl-aab3a7_cmplog
 SUTNAME=curl-aab3a7
 analysis_program["$SUTNAME:$COVERAGE_TAG"]="$BASE_TOOLS_PATH/$SUT/code-enum-cov/$FUZZER"
 analysis_program["$SUTNAME:$DEDUPLICATION_TAG"]="$BASE_TOOLS_PATH/$SUT/aflpp/$FUZZER"
-analysis_program_args["$SUTNAME"]=""
+analysis_program_args["$SUTNAME"]="@@"
 
 FUZZER=fuzz_target
 SUT=bloaty-2020-05-25_cmplog
 SUTNAME=bloaty-2020-05-25
 analysis_program["$SUTNAME:$COVERAGE_TAG"]="$BASE_TOOLS_PATH/$SUT/code-enum-cov/$FUZZER"
 analysis_program["$SUTNAME:$DEDUPLICATION_TAG"]="$BASE_TOOLS_PATH/$SUT/aflpp/$FUZZER"
-analysis_program_args["$SUTNAME"]=""
+analysis_program_args["$SUTNAME"]="@@"
 
 FUZZER=bison
 SUT=bison-3.3-forkmode_cmplog
