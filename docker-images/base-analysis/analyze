@@ -117,10 +117,10 @@ deduplication_crashes() {
           local common_args="-i $CRASHES -o $output_dir --report-formats=text,json --bucket-strategy $strategy -t 15000"
           if [ "$STDIN_REDIRECT" = "true" ]; then
               echo "afltriage $common_args --stdin -- $DEDUP_BUILD/$FUZZER $SUT_ARGS" 
-              # afltriage $common_args --stdin -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS || echo ""
+              afltriage $common_args --stdin -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS || echo ""
           else
               echo "afltriage $common_args -- $DEDUP_BUILD/$FUZZER $pre_testcase_args @@ $post_testcase_args"
-              # afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args || echo ""
+              afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args || echo ""
           fi
       else
           echo "[!] Skipping '$strategy': output already exists at '$output_dir'"
