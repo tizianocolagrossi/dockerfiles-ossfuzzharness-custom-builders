@@ -289,5 +289,5 @@ cleanup() {
 set_environment $1
 extract_data
 deduplication_crashes
-# coverage_computation
+coverage_computation
 cleanup
