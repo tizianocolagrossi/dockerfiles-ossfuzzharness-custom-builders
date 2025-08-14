@@ -4,8 +4,12 @@
 set_environment(){
 
   # --- Parse SUT_ARGS into pre and post "@@" parts ---
-  pre_testcase_args="${SUT_ARGS%% @@*}"
-  post_testcase_args="${SUT_ARGS##*@@ }"
+  TMP_SUT_ARGS=$SUT_ARGS
+  pre_testcase_args="${TMP_SUT_ARGSstr%%@@*}"
+  post_testcase_args="${TMP_SUT_ARGS#*@@}"  
+  [[ "$pre_testcase_args" == "@@" ]] && var=""
+  [[ "$post_testcase_args" == "@@" ]] && var=""
+
 
   # --- Constants and Environment Setup ---
   export PATH=$OUT:$PATH
@@ -112,9 +116,11 @@ deduplication_crashes() {
       if [[ ! -d "$output_dir" ]]; then
           local common_args="-i $CRASHES -o $output_dir --report-formats=text,json --bucket-strategy $strategy -t 15000"
           if [ "$STDIN_REDIRECT" = "true" ]; then
-              afltriage $common_args --stdin -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS || echo ""
+              echo "afltriage $common_args --stdin -- $DEDUP_BUILD/$FUZZER $SUT_ARGS" 
+              # afltriage $common_args --stdin -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS || echo ""
           else
-              afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args || echo ""
+              echo "afltriage $common_args -- $DEDUP_BUILD/$FUZZER $pre_testcase_args @@ $post_testcase_args"
+              # afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args || echo ""
           fi
       else
           echo "[!] Skipping '$strategy': output already exists at '$output_dir'"
@@ -154,16 +160,20 @@ coverage_computation() {
     sut_args="$3"
 
     # --- Parse SUT_ARGS into pre and post "@@" parts ---
-    pre_args="${sut_args%% @@*}"
-    post_args="${sut_args##*@@ }"
+    pre_args="${TMP_SUT_ARGSstr%%@@*}"
+    post_args="${TMP_SUT_ARGS#*@@}" 
+    [[ "$pre_args" == "@@" ]] && var=""
+    [[ "$post_args" == "@@" ]] && var=""
 
     name=$(basename "$testcase")
     export LLVM_PROFILE_FILE="coverage_${name}.profraw"
     echo "[*] Running testcase: $name"
 
     if [[ "$stdin_redirect" == "true" ]]; then
+      # echo "timeout 5s $fuzzer_path $sut_args < $testcase" 
       timeout 5s $fuzzer_path $sut_args < $testcase 
     else
+      # echo "timeout 5s $fuzzer_path $pre_args $testcase $post_args"
       timeout 5s $fuzzer_path $pre_args $testcase $post_args
     fi
 
@@ -205,6 +215,7 @@ coverage_computation() {
           echo "[*] cpus available $(cpuset_count)"
           file_count=$(find "$FUZZ_OUT/default/queue/" -type f | wc -l)
           if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS" >> $FUZZ_OUT/run_testcase.log 2>&1' _ {} ; then
+          # if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
           echo "[!] parallel jobs had failures, but continuing..."
         fi
       else
@@ -278,5 +289,5 @@ cleanup() {
 set_environment $1
 extract_data
 deduplication_crashes
-coverage_computation
+# coverage_computation
 cleanup
