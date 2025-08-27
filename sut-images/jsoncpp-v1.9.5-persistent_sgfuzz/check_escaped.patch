@@ -1,0 +1,14 @@
+diff --git a/sanitizer/State_machine_instrument.py b/sanitizer/State_machine_instrument.py
+index 23287f8..350f70c 100644
+--- a/sanitizer/State_machine_instrument.py
++++ b/sanitizer/State_machine_instrument.py
+@@ -159,7 +159,8 @@ def instrument(enum_variable_uniq):
+                     content = f.read()
+                     for name in enum_variable_uniq:
+                         safe_name = re.escape(name)
+-                        result = search_index("^(?: |\t)*?(?:\w+\.|\w+->)*?" + safe_name +" ?= ?\w+?;", content)
++                        if safe_name == name:
++                            result = search_index("^(?: |\t)*?(?:\w+\.|\w+->)*?" + safe_name +" ?= ?\w+?;", content)
+                         content = package_content(content, result, file, root)
+                     if not debug:
+                         f.seek(0)
