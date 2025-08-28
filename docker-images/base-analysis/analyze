@@ -5,7 +5,7 @@ set_environment(){
 
   # --- Parse SUT_ARGS into pre and post "@@" parts ---
   TMP_SUT_ARGS=$SUT_ARGS
-  pre_testcase_args="${TMP_SUT_ARGSstr%%@@*}"
+  pre_testcase_args="${TMP_SUT_ARGS%%@@*}"
   post_testcase_args="${TMP_SUT_ARGS#*@@}"  
   [[ "$pre_testcase_args" == "@@" ]] && var=""
   [[ "$post_testcase_args" == "@@" ]] && var=""
