@@ -160,14 +160,15 @@ coverage_computation() {
     sut_args="$3"
 
     # --- Parse SUT_ARGS into pre and post "@@" parts ---
-    pre_args="${TMP_SUT_ARGS%%@@*}"
-    post_args="${TMP_SUT_ARGS#*@@}" 
+    pre_args="${sut_args%%@@*}"
+    post_args="${sut_args#*@@}" 
     [[ "$pre_args" == "@@" ]] && var=""
     [[ "$post_args" == "@@" ]] && var=""
 
+
     name=$(basename "$testcase")
     export LLVM_PROFILE_FILE="coverage_${name}.profraw"
-    echo "[*] Running testcase: $name"
+    echo "[*] Running testcase: $name pre >$pre_args<, post >$post_args< "
 
     if [[ "$stdin_redirect" == "true" ]]; then
       # echo "timeout 5s $fuzzer_path $sut_args < $testcase" 
