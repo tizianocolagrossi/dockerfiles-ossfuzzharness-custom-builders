@@ -106,25 +106,19 @@ append_creation_date() {
 run_libfuzzer() {
 
     # Construct command with optional dictionary
-            # -fork=1 
-            # -ignore_ooms=1 
-            # -ignore_timeouts=1 
-            # -ignore_crashes=1 
     CMD=("$FUZZ_TARGET" 
-            -fork=1 
-            -ignore_ooms=1 
-            -ignore_timeouts=1 
-            -ignore_crashes=1 
-            -keep_seed=1 
-            -cross_over_uniform_dist=1 
+            -fork=1
+            -reload=0
+            -ignore_crashes=1
+            -print_funcs=0
+            -print_final_stats=1
+            -print_corpus_stats=1
             -rss_limit_mb=16192 
-            -print_final_stats=1 
-            -close_fd_mask=3 
+            -deteact_leaks=0
+            -close_fd_mask=3
             -timeout=5 
-            -detect_leaks=0 
             -max_total_time=$TOTAL_TIMEOUT
             -artifact_prefix=$CRASHES 
-            "$QUEUE" 
             )
 
     # Handle additional args as an array if needed
@@ -136,6 +130,8 @@ run_libfuzzer() {
         echo "Using dictionary: $DICTIONARY"
         CMD+=("-dict=$DICTIONARY")
     fi
+
+    CMD+=("$QUEUE")
 
     # Run LibFuzzer with timeout
     echo "taskset -c $CPUIDBIND ${CMD[@]}"
@@ -151,73 +147,7 @@ run_libfuzzer() {
     OUT_FILE="$OUTPUT_DIR/default/fuzzer_stats"
     start_time=$(date +%s)
 
-    # Initialize fuzzer_stats
-    : > "$OUT_FILE"
-    taskset -c $CPUIDBIND stdbuf -oL -eL bashscript.sh 2>&1 | while IFS= read -r line; do
-        # Extract using regex-friendly tools
-        echo "$line"
-        cov=$(echo "$line" | grep -oP 'cov: \K[0-9]+')
-        corp=$(echo "$line" | grep -oP 'corp: \K[0-9]+')
-        execs=$(echo "$line" | grep -oP 'exec/s \K[0-9]+')
-        timeout=$(echo "$line" | grep -oP 'oom/timeout/crash: [0-9]+/\K[0-9]+')
-        crash=$(echo "$line" | grep -oP 'oom/timeout/crash: [0-9]+/[0-9]+/\K[0-9]+')
-        timestamp=$(date +%s)
-        if [[ -n "$cov" && -n "$corp" && -n "$execs" && -n "$timeout" && -n "$crash" ]]; then
-            # Write to fuzzer_stats
-            {
-                echo "start_time        : $start_time"
-                echo "last_update       : $timestamp"
-                echo "run_time          : -1"
-                echo "fuzzer_pid        : -1"
-                echo "cycles_done       : -1"
-                echo "cycles_wo_finds   : -1"
-                echo "time_wo_finds     : -1"
-                echo "fuzz_time         : -1"
-                echo "calibration_time  : -1"
-                echo "cmplog_time       : -1"
-                echo "sync_time         : -1"
-                echo "trim_time         : -1"
-                echo "execs_done        : -1"
-                echo "execs_per_sec     : $execs"
-                echo "execs_ps_last_min : -1"
-                echo "corpus_count      : $corp"
-                echo "corpus_favored    : -1"
-                echo "corpus_found      : $corp"
-                echo "corpus_imported   : -1"
-                echo "corpus_variable   : -1"
-                echo "max_depth         : -1"
-                echo "cur_item          : -1"
-                echo "pending_favs      : -1"
-                echo "pending_total     : $corp"
-                echo "stability         : -1"
-                echo "bitmap_cvg        : -1"
-                echo "saved_crashes     : $crash"
-                echo "saved_hangs       : $timeout"
-                echo "last_find         : -1"
-                echo "last_crash        : -1"
-                echo "last_hang         : -1"
-                echo "execs_since_crash : -1"
-                echo "exec_timeout      : -1"
-                echo "slowest_exec_ms   : -1"
-                echo "peak_rss_mb       : -1"
-                echo "cpu_affinity      : -1"
-                echo "edges_found       : -1"
-                echo "total_edges       : -1"
-                echo "var_byte_count    : -1"
-                echo "havoc_expansion   : -1"
-                echo "auto_dict_entries : -1"
-                echo "testcache_size    : -1"
-                echo "testcache_count   : -1"
-                echo "testcache_evict   : -1"
-                echo "afl_banner        : sgfuzz"
-                echo "afl_version       : sgfuzz"
-                echo "target_mode       : sgfuzz" 
-                echo "command_line      : none"
-            } > "$OUT_FILE"
-
-            echo "[+] fuzzer_stats written to $OUT_FILE"
-        fi
-    done
+    taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee fuzzer.log
 
 }
 
