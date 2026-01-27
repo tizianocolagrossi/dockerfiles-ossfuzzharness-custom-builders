@@ -144,10 +144,9 @@ run_libfuzzer() {
     # Make it executable
     chmod +x bashscript.sh
 
-    OUT_FILE="$OUTPUT_DIR/default/fuzzer_stats"
-    start_time=$(date +%s)
+    OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
 
-    taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee fuzzer.log
+    taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
 
 }
 
