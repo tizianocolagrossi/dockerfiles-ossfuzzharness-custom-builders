@@ -115,7 +115,7 @@ run_libfuzzer() {
             -print_corpus_stats=1
             -rss_limit_mb=16192 
             -deteact_leaks=0
-            -close_fd_mask=3
+            # -close_fd_mask=3
             -timeout=5 
             -max_total_time=$TOTAL_TIMEOUT
             -artifact_prefix=$CRASHES 
@@ -148,7 +148,7 @@ run_libfuzzer() {
 
     # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
     "${CMD[@]}" >"$LOG_FILE" 2>&1
-    
+
 }
 
 echo "add args $ADDITIONAL_SUT_ARGS"
