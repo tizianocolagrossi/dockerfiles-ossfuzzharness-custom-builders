@@ -165,7 +165,7 @@ for build in $builds; do
   shift
 
   sanitizer_divided="${per_build_sanitizers// /_}"
-  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7/$project_name/$build/
+  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7-new-full/$project_name/$build/
 #   echo $build_dir
 #   echo $sanitizers
 #   echo $sanitizer_divided
