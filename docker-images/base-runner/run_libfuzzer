@@ -147,7 +147,7 @@ run_libfuzzer() {
     OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
 
     # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
-    "${CMD[@]}" >"$LOG_FILE" 2>&1
+    "${CMD[@]}" >"$OUT_FILE" 2>&1
 
 }
 
