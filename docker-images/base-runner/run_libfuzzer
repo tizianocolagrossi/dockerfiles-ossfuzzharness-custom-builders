@@ -137,17 +137,18 @@ run_libfuzzer() {
     echo "taskset -c $CPUIDBIND ${CMD[@]}"
     # taskset -c $CPUIDBIND "${CMD[@]}"
 
-    # Create the script file
-    echo "#!/bin/bash" > bashscript.sh
-    echo "${CMD[@]}" >> bashscript.sh
+    # # Create the script file
+    # echo "#!/bin/bash" > bashscript.sh
+    # echo "${CMD[@]}" >> bashscript.sh
 
-    # Make it executable
-    chmod +x bashscript.sh
+    # # Make it executable
+    # chmod +x bashscript.sh
 
     OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
 
-    taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
-
+    # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
+    "${CMD[@]}" >"$LOG_FILE" 2>&1
+    
 }
 
 echo "add args $ADDITIONAL_SUT_ARGS"
