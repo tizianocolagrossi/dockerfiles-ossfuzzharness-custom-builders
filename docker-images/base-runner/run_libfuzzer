@@ -147,7 +147,12 @@ run_libfuzzer() {
     OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
 
     # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
-    taskset -c $CPUIDBIND "${CMD[@]}" >"$OUT_FILE" 2>&1
+    # taskset -c $CPUIDBIND "${CMD[@]}" >"$OUT_FILE" 2>&1
+    taskset -c "$CPUIDBIND" "${CMD[@]}" 2>&1 | while IFS= read -r line; do
+        printf '%s\n' "$line" >>"$OUT_FILE"
+        tail -n 500 "$OUT_FILE" > "${OUT_FILE}.tmp" && mv "${OUT_FILE}.tmp" "$OUT_FILE"
+    done
+
 
 }
 
