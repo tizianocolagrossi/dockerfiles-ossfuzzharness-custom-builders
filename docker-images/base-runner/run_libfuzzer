@@ -114,7 +114,7 @@ run_libfuzzer() {
             -print_final_stats=1
             -print_corpus_stats=1
             -rss_limit_mb=16192 
-            -deteact_leaks=0
+            -detect_leaks=0
             # -close_fd_mask=3
             -timeout=5 
             -max_total_time=$TOTAL_TIMEOUT
@@ -147,7 +147,7 @@ run_libfuzzer() {
     OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
 
     # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
-    "${CMD[@]}" >"$OUT_FILE" 2>&1
+    taskset -c $CPUIDBIND "${CMD[@]}" >"$OUT_FILE" 2>&1
 
 }
 
