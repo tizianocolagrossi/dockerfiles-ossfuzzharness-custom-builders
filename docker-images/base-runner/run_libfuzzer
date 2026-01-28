@@ -106,17 +106,14 @@ append_creation_date() {
 run_libfuzzer() {
 
     # Construct command with optional dictionary
-    CMD=("$FUZZ_TARGET" 
-            -fork=1
-            -reload=0
-            -ignore_crashes=1
-            -print_funcs=0
-            -print_final_stats=1
-            -print_corpus_stats=1
+    CMD=("$FUZZ_TARGET"
             -rss_limit_mb=16192 
-            -detect_leaks=0
-            -close_fd_mask=3
-            -timeout=5 
+            -ignore_ooms=1 
+            -ignore_timeouts=1 
+            -ignore_crashes=1 
+            -print_final_stats=1
+            -close_fd_mask=3 
+            -timeout=5 -detect_leaks=0
             -max_total_time=$TOTAL_TIMEOUT
             -artifact_prefix=$CRASHES 
             )
@@ -135,19 +132,8 @@ run_libfuzzer() {
 
     # Run LibFuzzer with timeout
     echo "taskset -c $CPUIDBIND ${CMD[@]}"
-    # taskset -c $CPUIDBIND "${CMD[@]}"
 
-    # # Create the script file
-    # echo "#!/bin/bash" > bashscript.sh
-    # echo "${CMD[@]}" >> bashscript.sh
-
-    # # Make it executable
-    # chmod +x bashscript.sh
-
-    OUT_FILE="$OUTPUT_DIR/default/fuzzer.log"
-
-    # taskset -c $CPUIDBIND bashscript.sh 2>&1 | tee $OUT_FILE
-    taskset -c $CPUIDBIND "${CMD[@]}" # >"$OUT_FILE" 2>&1l
+    taskset -c $CPUIDBIND "${CMD[@]}" 
 
 
 }
