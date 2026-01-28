@@ -105,35 +105,80 @@ append_creation_date() {
 
 run_libfuzzer() {
 
-    # Construct command with optional dictionary
-    CMD=("$FUZZ_TARGET"
-            -rss_limit_mb=16192 
-            -ignore_ooms=1 
-            -ignore_timeouts=1 
-            -ignore_crashes=1 
+    # # Construct command with optional dictionary
+    # CMD=("$FUZZ_TARGET"
+    #         -rss_limit_mb=16192 
+    #         -ignore_ooms=1 
+    #         -ignore_timeouts=1 
+    #         -ignore_crashes=1 
+    #         -print_final_stats=1
+    #         -close_fd_mask=3 
+    #         -timeout=5 -detect_leaks=0
+    #         -max_total_time=$TOTAL_TIMEOUT
+    #         -artifact_prefix=$CRASHES 
+    #         )
+
+    # # Handle additional args as an array if needed
+    # if [[ -n "$ADDITIONAL_SUT_ARGS" ]]; then
+    #     CMD+=($ADDITIONAL_SUT_ARGS)
+    # fi
+
+    # if [[ -n "$DICTIONARY" && -f "$DICTIONARY" ]]; then
+    #     echo "Using dictionary: $DICTIONARY"
+    #     CMD+=("-dict=$DICTIONARY")
+    # fi
+
+    # CMD+=("$QUEUE")
+
+    # # Run LibFuzzer with timeout
+    # echo "taskset -c $CPUIDBIND ${CMD[@]}"
+
+    # taskset -c $CPUIDBIND "${CMD[@]}" 
+
+    REMAINING_TIME=$TOTAL_TIMEOUT
+
+    while (( REMAINING_TIME > 0 )); do
+        # Per-run max_total_time cannot exceed remaining global budget
+        RUN_TIMEOUT=$REMAINING_TIME
+
+        CMD=("$FUZZ_TARGET"
+            -rss_limit_mb=16192
+            -ignore_ooms=1
+            -ignore_timeouts=1
+            -ignore_crashes=1
             -print_final_stats=1
-            -close_fd_mask=3 
-            -timeout=5 -detect_leaks=0
-            -max_total_time=$TOTAL_TIMEOUT
-            -artifact_prefix=$CRASHES 
-            )
+            -close_fd_mask=3
+            -timeout=5
+            -detect_leaks=0
+            -max_total_time="$RUN_TIMEOUT"
+            -artifact_prefix="$CRASHES"
+        )
 
-    # Handle additional args as an array if needed
-    if [[ -n "$ADDITIONAL_SUT_ARGS" ]]; then
-        CMD+=($ADDITIONAL_SUT_ARGS)
-    fi
+        if [[ -n "$ADDITIONAL_SUT_ARGS" ]]; then
+            CMD+=($ADDITIONAL_SUT_ARGS)
+        fi
 
-    if [[ -n "$DICTIONARY" && -f "$DICTIONARY" ]]; then
-        echo "Using dictionary: $DICTIONARY"
-        CMD+=("-dict=$DICTIONARY")
-    fi
+        if [[ -n "$DICTIONARY" && -f "$DICTIONARY" ]]; then
+            echo "Using dictionary: $DICTIONARY"
+            CMD+=("-dict=$DICTIONARY")
+        fi
 
-    CMD+=("$QUEUE")
+        CMD+=("$QUEUE")
 
-    # Run LibFuzzer with timeout
-    echo "taskset -c $CPUIDBIND ${CMD[@]}"
+        echo "Remaining budget: ${REMAINING_TIME}s, running with -max_total_time=${RUN_TIMEOUT}"
 
-    taskset -c $CPUIDBIND "${CMD[@]}" 
+        SECONDS=0
+        taskset -c "$CPUIDBIND" "${CMD[@]}"
+        ELAPSED=$SECONDS
+
+        # Deduct actual wall-clock from remaining global budget
+        (( REMAINING_TIME -= ELAPSED ))
+
+        echo "Run finished after ${ELAPSED}s, remaining global budget: ${REMAINING_TIME}s"
+
+    done
+
+    echo "Global TOTAL_TIMEOUT of ${TOTAL_TIMEOUT}s reached; stopping fuzzing."
 
 
 }
