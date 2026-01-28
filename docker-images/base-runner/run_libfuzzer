@@ -115,7 +115,7 @@ run_libfuzzer() {
             -print_corpus_stats=1
             -rss_limit_mb=16192 
             -detect_leaks=0
-            # -close_fd_mask=3
+            -close_fd_mask=3
             -timeout=5 
             -max_total_time=$TOTAL_TIMEOUT
             -artifact_prefix=$CRASHES 
