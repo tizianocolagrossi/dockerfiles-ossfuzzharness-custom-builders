@@ -1,0 +1,171 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# --- Constants and Environment Setup ---
+
+DEST_DIR_LIBS="/lib/x86_64-linux-gnu/"
+QUEUE_TEST_CASE="$FUZZ_OUT/queue/*"
+CRASHES="$FUZZ_OUT/crashes/"
+SGFUZZ_KIND=0
+STDIN_REDIRECT=$([[ "${MULTIDESOCK:-}" == "true" ]] && echo "true" || echo "false")
+
+# --- Parse SUT_ARGS into pre and post "@@" parts ---
+
+pre_testcase_args="${SUT_ARGS%% @@*}"
+post_testcase_args="${SUT_ARGS##*@@ }"
+
+# --- Create symlinks for libraries ---
+
+create_symlinks() {
+  local src_dir="$1"
+  for lib in "$src_dir"/lib*; do
+    if [[ -f "$lib" ]]; then
+      local name
+      name=$(basename "$lib")
+      if [[ ! -e "$DEST_DIR_LIBS/$name" ]]; then
+        ln -s "$(realpath "$lib")" "$DEST_DIR_LIBS/$name"
+        echo "Created symlink: $name"
+      else
+        echo "Symlink exists: $name"
+      fi
+    fi
+  done
+}
+
+# create_symlinks "$SOURCE_DIR/lib*"
+create_symlinks "$DEDUP_BUILD/lib*"
+
+# --- Set up environment and navigate ---
+
+# export ASAN_OPTIONS="detect_leaks=0"
+export PATH="$OUT:$PATH"
+cd "$OUT"
+FUZZER="$1"
+shift
+
+# --- Unpack fuzzing output ---
+
+pushd "$FUZZ_OUT" > /dev/null
+
+if [[ -f "fuzz_out.zip" ]]; then
+  unzip -o fuzz_out.zip
+fi
+
+if [[ -f "fuzz_out.tar.gz" ]]; then
+  SGFUZZ_KIND=1
+  echo "Extracting fuzz_out.tar.gz..."
+  tar -xzf fuzz_out.tar.gz
+fi
+
+if [[ -d "./default" ]]; then
+  echo "Detected AFL-like output structure."
+  QUEUE_TEST_CASE="$FUZZ_OUT/default/queue/*"
+  CRASHES="$FUZZ_OUT/default/crashes/"
+  rm -f "$FUZZ_OUT/default/crashes/README.txt"
+  cp ./default/fuzzer_stats ./default/plot_data .
+fi
+
+popd > /dev/null
+
+# --- LD_PRELOAD for desockmulti if needed ---
+# --- Run afltriage with multiple strategies ---
+
+run_afltriage() {
+  local strategy="$1"
+  local output_dir="$FUZZ_OUT/afltriageout-$strategy"
+
+  if [[ ! -d "$output_dir" ]]; then
+    local common_args="-i $CRASHES -o $output_dir --report-formats=text,json --bucket-strategy $strategy -t 15000"
+    if [[ "$STDIN_REDIRECT" == "true" ]]; then
+      afltriage $common_args --stdin -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS
+    else
+      afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $pre_testcase_args @@ $post_testcase_args
+    fi
+  else
+    echo "Skipping '$strategy': output directory exists."
+  fi
+}
+
+if [[ "$MULTIDESOCK" == "true" ]]; then
+  export LD_PRELOAD="/usr/lib/desockmulti.so"
+fi
+
+for strategy in "first_frame" "first_3_frames" "first_5_frames"; do
+  run_afltriage "$strategy"
+done
+
+unset LD_PRELOAD
+
+# --- Coverage / Enumeration profiling ---
+
+run_testcase() {
+  testcase="$1"
+  name=$(basename "$testcase")
+  export LLVM_PROFILE_FILE="coverage_${name}.profraw"
+  export ENUM_PROFILE_FILE="enumprofile_${name}.csv"
+
+  echo "curr_type_name, prev_type_name, curr_value, prev_value, prev_value_per_curr_type, curr_id_bb, prev_bb_id" > $ENUM_PROFILE_FILE
+  echo "Running testcase: $name"
+
+  if [[ "$STDIN_REDIRECT" == "true" ]]; then
+    timeout 5s "$OUT/$FUZZER" $SUT_ARGS < "$testcase"
+  else
+    timeout 5s "$OUT/$FUZZER" $pre_testcase_args "$testcase" $post_testcase_args
+  fi
+}
+# Make the function run_testcase available in any new subshells spawned from this shell session.
+export -f run_testcase
+
+if [[ "$COVERAGE_PROFILE" == "true" || "$ENUMERATION_PROFILE" == "true" ]]; then
+
+  if [[ "$ENUMERATION_PROFILE" == "true" ]]; then
+    # export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
+    "$OUT/afl-enumetric-dumper-bitmapshared" &
+    bitmapshared_pid=$!
+    echo "Started enumetric bitmap dumper (PID: $bitmapshared_pid)"
+    sleep 2
+  fi
+
+  if [[ "$MULTIDESOCK" == "true" ]]; then
+    export LD_PRELOAD="/usr/lib/desockmulti.so"
+  fi
+
+  if [[ ! -e "$FUZZ_OUT/llvmcov.json" || "$ENUMERATION_PROFILE" == "true" ]]; then
+    find "$QUEUE_TEST_CASE" -type f | parallel run_testcase
+  else
+    echo "Coverage file exists. Skipping test case runs."
+  fi
+
+  unset LD_PRELOAD
+
+  if [[ "$ENUMERATION_PROFILE" == "true" ]]; then
+    sleep 2
+    kill "$bitmapshared_pid"
+    echo "Generating merged coverage profile..."
+    cat enumprofile_*.csv > merged_enumprofile.txt
+  fi
+
+  if [[ "$COVERAGE_PROFILE" == "true" && ! -e "$FUZZ_OUT/llvmcov_total.json" ]]; then
+    echo "Generating merged coverage profile..."
+    find . -name 'coverage_*.profraw' -print0 | xargs -0 -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_{}.profdata
+    llvm-profdata-13 merge -sparse temp_*.profdata -o coverage.profdata
+    llvm-cov-13 export --format=text --instr-profile=coverage.profdata "$OUT/$FUZZER" > "$FUZZ_OUT/llvmcov.json"
+
+    python3 -c "import json; d=json.load(open('$FUZZ_OUT/llvmcov.json')); json.dump(d['data'][0]['totals'], open('$FUZZ_OUT/llvmcov_total.json','w'))"
+  fi
+fi
+
+# --- Cleanup and ownership ---
+
+if [[ -d "./default" ]]; then
+  cp ./default/fuzzer_stats ./default/plot_data .
+fi
+
+chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
+cd "$FUZZ_OUT"
+
+rm -rf ./default ./queue ./hangs ./crashes ./.synced ./fuzzer_setup ./fuzz_bitmap ./cmdline
+rm -f ./coverage_*.profraw ./*.profraw.profdata "$OUT"/coverage_*.profraw "$OUT"/*.profraw.profdata "$OUT"/coverage.profdata
+
+[[ "$SGFUZZ_KIND" -eq 1 ]] && rm -f ../fuzz_out.tar.gz
