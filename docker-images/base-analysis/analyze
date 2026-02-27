@@ -3,18 +3,19 @@
 
 # SUT_ARGS
 
-export ASAN_OPTIONS="detect_leaks=0"
+
 
 sysctl -w vm.mmap_rnd_bits=28
 
-# export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
-# export AFL_SKIP_CPUFREQ=1
-# export AFL_TRY_AFFINITY=1
-# export AFL_FAST_CAL=1
-# export AFL_CMPLOG_ONLY_NEW=1
-# export AFL_FORKSRV_INIT_TMOUT=30000
-# export AFL_IGNORE_PROBLEMS=1
-# export AFL_IGNORE_UNKNOWN_ENVS=1
+  export PATH=$OUT:$PATH
+  export AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
+  export AFL_SKIP_CPUFREQ=1
+  export AFL_TRY_AFFINITY=1
+  export AFL_FAST_CAL=1
+  export AFL_CMPLOG_ONLY_NEW=1
+  export AFL_FORKSRV_INIT_TMOUT=30000
+  export AFL_IGNORE_PROBLEMS=1
+  export AFL_IGNORE_UNKNOWN_ENVS=1
 
 # Destination directory where the symbolic links will be created
 DEST_DIR="/lib/x86_64-linux-gnu/"
@@ -115,7 +116,7 @@ unset LD_PRELOAD
 
 
 unset LD_PRELOAD
-
+export ASAN_OPTIONS="detect_leaks=0"
 if [ "$ENUMERATION_PROFILE" = "true" ] && [ ! -e "$FUZZ_OUT/default_enumprofile.csv" ]; then
 
     echo "Running for enumprofile"
