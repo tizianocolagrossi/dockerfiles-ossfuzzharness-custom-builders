@@ -144,6 +144,7 @@ done
 
 
 echo "Unique SUTs:"
+CPU_COUNTER=0
 for sut in "${sut_list[@]}"; do
     echo "- $sut"
     for fuzz_out_dir in $OUTPUTS_DIR*$sut*; do 
@@ -152,6 +153,7 @@ for sut in "${sut_list[@]}"; do
             break
         fi
         echo "Found output"
+        CPU_COUNTER=$(( (CPU_COUNTER + 1) % 120 ))
         coverage_build="${analysis_program["$sut:$COVERAGE_TAG"]}"
         deduplication_build="${analysis_program["$sut:$DEDUPLICATION_TAG"]}"
         args="${analysis_program_args["$sut"]}"
@@ -161,10 +163,10 @@ for sut in "${sut_list[@]}"; do
         
         if [ $DUMMY == 1 ] ; then
             #dummy
-            echo "$ANALIZE_SCRIPT_PATH -c -e -o $fuzz_out_dir -p $CPU_RANGE $ARGS_FLAG $coverage_build $deduplication_build"
+            echo "$ANALIZE_SCRIPT_PATH -c -e -o $fuzz_out_dir -p $CPU_COUNTER $ARGS_FLAG $coverage_build $deduplication_build"
         else
             #real
-            $ANALIZE_SCRIPT_PATH -c -e "${ARGS_FLAG[@]}" $CPUS_FLAG -o $fuzz_out_dir $coverage_build $deduplication_build
+            $ANALIZE_SCRIPT_PATH -c -e "${ARGS_FLAG[@]}" -p $CPU_COUNTER -o $fuzz_out_dir $coverage_build $deduplication_build
         fi
     done
 done
