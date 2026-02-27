@@ -75,6 +75,40 @@ fi
 
 popd
 
+# --- LD_PRELOAD for desockmulti if needed ---
+# --- Run afltriage with multiple strategies ---
+
+# Function to run afltriage with specified parameters
+run_afltriage() {
+    local strategy="$1"
+    local output_dir="$FUZZ_OUT/afltriageout-$strategy"
+    
+    if [[ ! -d "$output_dir" ]]; then
+        local common_args="-i $CRASHES -o $output_dir --report-formats=text,json --bucket-strategy $strategy -t 15000"
+      
+          echo "afltriage $common_args -- $DEDUP_BUILD/$FUZZER $SUT_ARGS"
+          afltriage $common_args -- "$DEDUP_BUILD/$FUZZER" $SUT_ARGS || echo ""
+    else
+        echo "[!] Skipping '$strategy': output already exists at '$output_dir'"
+    fi
+    chown -R "$OUTUID:$OUTGID" "$FUZZ_OUT"
+}
+
+# remember in install_deps.sh vv
+# ln -s $SRC/BAAFLTriage/target/release/baafltriage /usr/local/bin/afltriage
+# Define the bucket strategies in an array
+declare -a BUCKET_STRATEGIES=("first_frame" "first_3_frames" "first_5_frames")
+
+# Loop through each bucket strategy and call the function
+echo "[*] Starting crash triage with afltriage..."
+for strategy in "${BUCKET_STRATEGIES[@]}"; do
+  echo "[+] Running triage with strategy: '$strategy'"
+  run_afltriage "$strategy"
+done
+
+unset LD_PRELOAD
+
+
 # Ensure timeout is a bit larger than 1sec as some of the OSS-Fuzz fuzzers
 # are slower than this.
 # LIBAFL_FUZZER_ARGS="-t 5000"
