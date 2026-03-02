@@ -106,5 +106,5 @@ docker run -it --rm --shm-size=1gb \
   -e ENUMERATION_PROFILE=$enum_profile_enabled  \
   -e MULTIDESOCK=$multidesock_enabled \
   -e OUTUID=$(id -u) -e OUTGID=$(id -g) \
-  --cpuset-cpus="$cpu_range" \
+  ${cpu_range:+--cpuset-cpus="$cpu_range"} \
   -t osvaldo/oss-base-analysis analyze $FUZZER

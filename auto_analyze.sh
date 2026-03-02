@@ -4,8 +4,8 @@ COVERAGE_TAG='code-enum-cov'
 DEDUPLICATION_TAG='deduplication'
 ARGS_TAG='args'
 
-# CPU_RANGE="64-118"
-CPU_RANGE="0-4"
+CPU_RANGE="64-118"
+#CPU_RANGE="0-4"
 
 OUTPUTS_DIR=/home/tiziano/outputs/
 ANALIZE_SCRIPT_PATH=/home/tiziano/Documents/enumetric-Research/dockerfiles-ossfuzzharness-custom-builders/analize.sh
@@ -163,10 +163,10 @@ for sut in "${sut_list[@]}"; do
         
         if [ $DUMMY == 1 ] ; then
             #dummy
-            echo "$ANALIZE_SCRIPT_PATH -c -e -o $fuzz_out_dir -p $CPU_COUNTER $ARGS_FLAG $coverage_build $deduplication_build"
+            echo "$ANALIZE_SCRIPT_PATH -c -e -o $fuzz_out_dir $CPUS_FLAG $ARGS_FLAG $coverage_build $deduplication_build"
         else
             #real
-            $ANALIZE_SCRIPT_PATH -c -e "${ARGS_FLAG[@]}" -p $CPU_COUNTER -o $fuzz_out_dir $coverage_build $deduplication_build
+            $ANALIZE_SCRIPT_PATH -c -e "${ARGS_FLAG[@]}" $CPUS_FLAG -o $fuzz_out_dir $coverage_build $deduplication_build
         fi
     done
 done
