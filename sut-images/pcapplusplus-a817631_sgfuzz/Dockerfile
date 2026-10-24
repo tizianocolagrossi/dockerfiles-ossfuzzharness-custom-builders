@@ -26,5 +26,5 @@ RUN git clone --depth=1 https://github.com/the-tcpdump-group/libpcap.git libpcap
 WORKDIR PcapPlusPlus
 
 COPY build.sh $SRC
-COPY *.options $SRC
 COPY *.patch $SRC
+COPY *.options $SRC

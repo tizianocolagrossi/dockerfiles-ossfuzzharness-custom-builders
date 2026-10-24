@@ -20,19 +20,21 @@
 
 # CFLAGS="-ldbus-1 $CFLAGS"
 # CXXFLAGS="-ldbus-1 $CXXFLAGS"
-
+echo "builder"
 pushd $SRC/PcapPlusPlus
 git reset --hard
 git fetch --all -pP
 git checkout a817631
 git apply $SRC/fuzzers_makepile.patch
+git apply $SRC/FuzzTarget.patch 
+echo "apply"
 popd
 
 pushd $SRC/libpcap
 
 popd
 
-# pkg-config --libs --cflags dbus-1
+pkg-config --libs --cflags dbus-1
 
 # Build libpcap
 cd $SRC/libpcap/
@@ -41,7 +43,8 @@ python3 /src/SGFuzz/sanitizer/State_machine_instrument.py .
 ./configure --enable-shared=no
 make -j$(nproc)
 
-# cat $SRC/PcapPlusPlus/Tests/Fuzzers/Makefile
+
+cat $SRC/PcapPlusPlus/Tests/Fuzzers/Makefile  
 
 # Build PcapPlusPlus linking statically against the built libpcap
 cd $SRC/PcapPlusPlus
@@ -52,7 +55,7 @@ python3 /src/SGFuzz/sanitizer/State_machine_instrument.py . -b ./filter.txt
 make clean
 make fuzzers -j$(nproc) 
 
-# Copy target and options
+# # Copy target and options
 cp $SRC/PcapPlusPlus/Tests/Fuzzers/Bin/FuzzTarget $OUT
 cp $(ldd $OUT/FuzzTarget | cut -d" " -f3) $OUT
 cp $(ldd $OUT/llvm-symbolizer-10 | cut -d" " -f3) $OUT

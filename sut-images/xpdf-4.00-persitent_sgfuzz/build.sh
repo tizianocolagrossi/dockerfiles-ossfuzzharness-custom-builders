@@ -31,7 +31,7 @@ python3 /src/SGFuzz/sanitizer/State_machine_instrument.py . -b filter.txt
 
 mkdir build
 cd build
-cmake -DCMAKE_CXX_FLAGS="$CXXFLAGS" ..
+cmake ..
 make -j
 
 find ./xpdf -type f -executable -exec cp "{}" /out/ \;

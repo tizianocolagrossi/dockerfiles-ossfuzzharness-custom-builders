@@ -137,7 +137,7 @@ deduplication_crashes() {
   fi
 
   # Define the bucket strategies in an array
-  declare -a BUCKET_STRATEGIES=("first_frame" "first_3_frames" "first_5_frames")
+  declare -a BUCKET_STRATEGIES=("first_5_frames") #("first_frame" "first_3_frames" "first_5_frames")
 
   # Loop through each bucket strategy and call the function
   echo "[*] Starting crash triage with afltriage..."
@@ -151,55 +151,55 @@ deduplication_crashes() {
 
 # --- Coverage / Enumeration profiling ---
 coverage_computation() {
-  export ASAN_OPTIONS="detect_leaks=0"
+  # export ASAN_OPTIONS="detect_leaks=0"
 
-  run_testcase() {
-    testcase="$1"
-    fuzzer_path="$OUT/$FUZZER"
-    stdin_redirect="$2"
-    sut_args="$3"
+  # run_testcase() {
+  #   testcase="$1"
+  #   fuzzer_path="$OUT/$FUZZER"
+  #   stdin_redirect="$2"
+  #   sut_args="$3"
 
-    # --- Parse SUT_ARGS into pre and post "@@" parts ---
-    pre_args="${sut_args%%@@*}"
-    post_args="${sut_args#*@@}" 
-    [[ "$pre_args" == "@@" ]] && var=""
-    [[ "$post_args" == "@@" ]] && var=""
+  #   # --- Parse SUT_ARGS into pre and post "@@" parts ---
+  #   pre_args="${sut_args%%@@*}"
+  #   post_args="${sut_args#*@@}" 
+  #   [[ "$pre_args" == "@@" ]] && var=""
+  #   [[ "$post_args" == "@@" ]] && var=""
 
 
-    name=$(basename "$testcase")
-    export LLVM_PROFILE_FILE="coverage_${name}.profraw"
-    export ENUM_PROFILE_FILE="/dev/null"
-    echo "curr_type_name, prev_type_name, curr_value, prev_value, prev_value_per_curr_type, curr_id_bb, prev_bb_id" > $ENUM_PROFILE_FILE
+  #   name=$(basename "$testcase")
+  #   export LLVM_PROFILE_FILE="coverage_${name}.profraw"
+  #   export ENUM_PROFILE_FILE="/dev/null"
+  #   echo "curr_type_name, prev_type_name, curr_value, prev_value, prev_value_per_curr_type, curr_id_bb, prev_bb_id" > $ENUM_PROFILE_FILE
 
-    echo "[*] Running testcase: $name pre >$pre_args<, post >$post_args< "
+  #   echo "[*] Running testcase: $name pre >$pre_args<, post >$post_args< "
 
-    if [[ "$stdin_redirect" == "true" ]]; then
-      # echo "timeout 5s $fuzzer_path $sut_args < $testcase" 
-      timeout 5s $fuzzer_path $sut_args < $testcase 
-    else
-      # echo "timeout 5s $fuzzer_path $pre_args $testcase $post_args"
-      timeout 5s $fuzzer_path $pre_args $testcase $post_args
-    fi
+  #   if [[ "$stdin_redirect" == "true" ]]; then
+  #     # echo "timeout 5s $fuzzer_path $sut_args < $testcase" 
+  #     timeout 5s $fuzzer_path $sut_args < $testcase 
+  #   else
+  #     # echo "timeout 5s $fuzzer_path $pre_args $testcase $post_args"
+  #     timeout 5s $fuzzer_path $pre_args $testcase $post_args
+  #   fi
 
-    ec=$?
-    if [[ $ec -eq 124 ]]; then
-      echo "[ANALYZER] [!] [TIMEOUT] $name"
-    elif [[ $ec -ne 0 ]]; then
-      echo "[ANALYZER] $name (exit code: $ec)"
-    else
-      echo "[ANALYZER] [Ok] $name"
-    fi
+  #   ec=$?
+  #   if [[ $ec -eq 124 ]]; then
+  #     echo "[ANALYZER] [!] [TIMEOUT] $name"
+  #   elif [[ $ec -ne 0 ]]; then
+  #     echo "[ANALYZER] $name (exit code: $ec)"
+  #   else
+  #     echo "[ANALYZER] [Ok] $name"
+  #   fi
 
-    return 0  # <== Suppress actual exit code
-  }
-  export -f run_testcase
+  #   return 0  # <== Suppress actual exit code
+  # }
+  # export -f run_testcase
 
   # on exit delete unnecessary data
 
   if [ "$COVERAGE_PROFILE" = "true" ] || [ "$ENUMERATION_PROFILE" = "true" ]; then
 
       if [[ "$ENUMERATION_PROFILE" == "true" ]]; then
-        # export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
+        export ENUM_PROFILE_FILE="$FUZZ_OUT/default_enumprofile.csv"
         $OUT/afl-enumetric-dumper-bitmapshared &
         bitmapshared_pid=$!
         echo "[*] Starting enumeration bitmap dumper..."
@@ -211,17 +211,28 @@ coverage_computation() {
         echo "[*] Enabling desockmulti via LD_PRELOAD..."
         export LD_PRELOAD=/usr/lib/desockmulti.so
       fi
-
+      echo "curr_type_name, prev_type_name, curr_value, prev_value, prev_value_per_curr_type, curr_id_bb, prev_bb_id" > $ENUM_PROFILE_FILE
       if  { [ "$COVERAGE_PROFILE" = "true" ] && [ ! -e "$FUZZ_OUT/llvmcov.json" ]; } || \
           { [ "$ENUMERATION_PROFILE" = "true" ] && [ "$(stat -c%s "$FUZZ_OUT/default_enumprofile.csv")" -lt 128 ]; }; then
 
         echo "[*] Running testcases for coverage/enumeration profiling..."
           echo "[*] cpus available $(cpuset_count)"
           file_count=$(find "$FUZZ_OUT/default/queue/" -type f | wc -l)
-          if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS" >> $FUZZ_OUT/run_testcase.log 2>&1' _ {} ; then
-          # if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
-          echo "[!] parallel jobs had failures, but continuing..."
-        fi
+          # if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS" >> $FUZZ_OUT/run_testcase.log 2>&1' _ {} ; then
+          # # if ! find $FUZZ_OUT/default/queue/ -type f | pv -p -t -e -l -s $file_count | xargs -n1 -P"$(cpuset_count)" -I{} bash -c 'run_testcase "$1" "$STDIN_REDIRECT" "$SUT_ARGS"' _ {} ; then
+          # echo "[!] parallel jobs had failures, but continuing..."
+
+          if ! find "$FUZZ_OUT/default/queue/" -type f | \
+            while IFS= read -r testcase; do
+              name=$(basename "$testcase")
+              export LLVM_PROFILE_FILE="$FUZZ_OUT/coverage_${name}.profraw"
+              echo "[*] Running testcase: $name pre >$pre_testcase_args<, post >$post_testcase_args< "
+              timeout 5s "$OUT/$FUZZER" $pre_testcase_args "$testcase" $post_testcase_args
+            done
+          then
+            echo "[!] some testcase runs failed, but continuing..."
+          fi
+        #fi
       else
         echo "[*] Coverage file exists. Skipping test case runs."
       fi
@@ -232,8 +243,8 @@ coverage_computation() {
         sleep 2
         kill $bitmapshared_pid
 
-        echo "Generating merged coverage profile..."
-        cat enumprofile_*.csv > merged_enumprofile.txt
+        # echo "Generating merged coverage profile..."
+        # cat enumprofile_*.csv > merged_enumprofile.txt
       fi
 
       if [[ "$COVERAGE_PROFILE" == "true" && ! -e "$FUZZ_OUT/llvmcov_total.json" ]]; then
@@ -242,12 +253,12 @@ coverage_computation() {
         # ls coverage_*.profraw | xargs -n 100 -I {} llvm-profdata-13 merge -sparse {} -o temp_coverage_{}.profdata
         # Split raw coverage files into batches of 100
         batch=0
-        for f in coverage_*.profraw; do
+        for f in $FUZZ_OUT/coverage_*.profraw; do
           [[ -e "$f" ]] || continue
           files+=("$f")
           if (( ${#files[@]} == 100 )); then
             printf "\r - [*] Merging batch $batch"
-            llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata" || echo ""
+            llvm-profdata-13 merge -sparse "${files[@]}" -o "$FUZZ_OUT/batch_${batch}.profdata" || echo ""
             files=()
             batch=$((batch + 1))
           fi
@@ -256,12 +267,12 @@ coverage_computation() {
 
         # Handle remaining files
         if (( ${#files[@]} > 0 )); then
-          llvm-profdata-13 merge -sparse "${files[@]}" -o "batch_${batch}.profdata" || echo ""
+          llvm-profdata-13 merge -sparse "${files[@]}" -o "$FUZZ_OUT/batch_${batch}.profdata" || echo ""
         fi
 
-        llvm-profdata-13 merge -sparse batch_*.profdata -o coverage.profdata
+        llvm-profdata-13 merge -sparse $FUZZ_OUT/batch_*.profdata -o $FUZZ_OUT/coverage.profdata
         echo "[*] Exporting llvm-cov report to: $FUZZ_OUT/llvmcov.json"
-        llvm-cov-13 export --format=text --instr-profile ./coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
+        llvm-cov-13 export --format=text --instr-profile $FUZZ_OUT/coverage.profdata $OUT/$FUZZER > $FUZZ_OUT/llvmcov.json
         echo "[*] Extracting total coverage into: $FUZZ_OUT/llvmcov_total.json"
         python3 -c "import sys, json; fdfull = open('$FUZZ_OUT/llvmcov.json', 'r'); data = json.load(fdfull); fdfull.close(); fd = open('$FUZZ_OUT/llvmcov_total.json', 'w+'); json.dump(data['data'][0]['totals'], fd); fd.close()"
       fi
@@ -284,9 +295,9 @@ cleanup() {
 
   find ./ -maxdepth 1 -name '*.profraw' -delete
   find ./ -maxdepth 1 -name 'batch_*.profdata' -delete
-  find "$OUT" -maxdepth 1 -name '*.profraw' -delete
-  find "$OUT" -maxdepth 1 -name 'batch_*.profdata' -delete
-  find "$OUT" -maxdepth 1 -name 'coverage.profdata' -delete
+  find "$FUZZ_OUT/" -maxdepth 1 -name '*.profraw' -delete
+  find "$FUZZ_OUT" -maxdepth 1 -name 'batch_*.profdata' -delete
+  find "$FUZZ_OUT" -maxdepth 1 -name 'coverage.profdata' -delete
 
   [[ "$SGFUZZ_KIND" -eq 1 ]] && rm -f ../fuzz_out.tar.gz
   echo "[+] Cleanup completed. Final output owned by $OUTUID:$OUTGID"
@@ -295,6 +306,6 @@ cleanup() {
 
 set_environment $1
 extract_data
-deduplication_crashes
+£deduplication_crashes
 coverage_computation
 cleanup

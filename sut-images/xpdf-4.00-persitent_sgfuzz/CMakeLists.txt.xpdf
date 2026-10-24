@@ -69,8 +69,8 @@ add_library(xpdf_objs OBJECT
   XRef.cc
   Zoox.cc
 )
+target_link_libraries(xpdf_objs -fsanitize=fuzzer-no-link -fsanitize=address -fsanitize-coverage=trace-cmp,trace-pc-guard)
 
-add_library(testXpdfStatic STATIC $<TARGET_OBJECTS:xpdf_objs>)
 #--- object files needed by XpdfWidget
 
 if ((QT4_FOUND OR Qt5Widgets_FOUND)
@@ -94,6 +94,8 @@ if ((QT4_FOUND OR Qt5Widgets_FOUND)
     TileMap.cc
     ${HIGHLIGHT_SRC}
   )
+  target_link_libraries(xpdf_widget_objs -fsanitize=fuzzer-no-link -fsanitize=address -fsanitize-coverage=trace-cmp,trace-pc-guard)
+
 endif ()
 
 add_library(testXpdfWidgetStatic STATIC 
@@ -102,6 +104,7 @@ add_library(testXpdfWidgetStatic STATIC
  $<TARGET_OBJECTS:xpdf_objs>
  ${FREETYPE_LIBRARY}
  ${FREETYPE_OTHER_LIBS})
+target_link_libraries(testXpdfWidgetStatic -fsanitize=fuzzer-no-link -fsanitize=address -fsanitize-coverage=trace-cmp,trace-pc-guard)
 
  #--- fuzz_pdfload
 
@@ -118,6 +121,6 @@ message(STATUS "FREETYPE_OTHER_LIBS: ${FREETYPE_OTHER_LIBS}")
 
 find_package(Freetype REQUIRED)
 
-target_link_libraries(fuzz_pdfload goo fofi Freetype::Freetype ${FREETYPE_LIBRARY} ${FREETYPE_OTHER_LIBS}${LCMS_LIBRARY} -fsanitize=fuzzer)
-install(TARGETS fuzz_pdfload RUNTIME DESTINATION bin)
+target_link_libraries(fuzz_pdfload goo fofi Freetype::Freetype ${FREETYPE_LIBRARY} ${FREETYPE_OTHER_LIBS}${LCMS_LIBRARY} -fsanitize=fuzzer-no-link -fsanitize=address -fsanitize-coverage=trace-cmp,trace-pc-guard -lsFuzzer )
 
+install(TARGETS fuzz_pdfload RUNTIME DESTINATION bin)

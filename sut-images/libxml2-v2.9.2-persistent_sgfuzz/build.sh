@@ -31,11 +31,11 @@ mv $SRC/BUILD .
 
 cd BUILD 
 ./autogen.sh
- CCLD="$CXX $CXXFLAGS" ./configure --disable-shared
+ CCLD="$CXX -fsanitize=fuzzer-no-link,address -fsanitize-coverage=trace-cmp $CXXFLAGS" ./configure --disable-shared
  make -j$(nproc)
 
 set -x
-$CXX $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/libxml2/BUILD/.libs/libxml2.a -lz -llzma -lsFuzzer -o $OUT/xml
+$CXX -fsanitize=address -fsanitize-coverage=trace-cmp $CXXFLAGS -std=c++11  $SRC/target.cc -I $SRC/libxml2/BUILD/include $SRC/libxml2/BUILD/.libs/libxml2.a -lz -llzma -lsFuzzer -o $OUT/xml
 cp $(ldd $OUT/xml | cut -d" " -f3) $OUT
 
 mkdir $SRC/corpus

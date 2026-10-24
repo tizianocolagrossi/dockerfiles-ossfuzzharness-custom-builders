@@ -16,7 +16,7 @@ export CFLAGS=$(echo "$CFLAGS" | awk '{for (i=1; i<=NF; i++) if (!seen[$i]++) pr
 # export CXXFLAGS="${CXXFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
 # export CFLAGS="${CFLAGS//-fsanitize=fuzzer/-fsanitize=fuzzer-no-link}"
 
-python3 /src/SGFuzz/sanitizer/State_machine_instrument.py .-b $SRC/blocked_variables.txt
+python3 /src/SGFuzz/sanitizer/State_machine_instrument.py . -b $SRC/blocked_variables.txt
 
 ./config no-shared
 make build_generated

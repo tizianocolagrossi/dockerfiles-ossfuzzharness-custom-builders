@@ -19,9 +19,9 @@ RUN apt-get clean
 
 RUN apt-get update && apt-get install -y mercurial automake autopoint cmake libtool nasm pkg-config po4a doxygen libharfbuzz-dev libsharp-dev python3-pip 
 RUN pip3 install meson==0.55 ninja
-RUN hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick || \
-    hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick || \
-    hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick
+# RUN hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick || \
+#     hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick || \
+#     hg clone -v http://hg.code.sf.net/p/graphicsmagick/code $SRC/graphicsmagick
 
 RUN git clone https://gitlab.com/libtiff/libtiff $SRC/libtiff && cd $SRC/libtiff && git checkout b8eac98d
 RUN git clone https://github.com/webmproject/libwebp $SRC/libwebp && cd $SRC/libwebp && git checkout tags/v1.0.1
@@ -37,8 +37,10 @@ RUN git clone --depth 1 https://gitlab.com/federicomenaquintero/bzip2.git $SRC/b
 RUN git clone https://github.com/ImageMagick/lzma.git $SRC/lzma && cd $SRC/lzma && git checkout d9ea14f70bd8e16e8020977752f92bd6f27570d0
 RUN git clone https://github.com/harfbuzz/harfbuzz.git $SRC/harfbuzz && cd $SRC/harfbuzz && git checkout tags/2.1.1
 
+# RUN hg update -r GraphicsMagick-1_3_31
+RUN mkdir $SRC/graphicsmagick/
 WORKDIR $SRC/graphicsmagick
-RUN hg update -r GraphicsMagick-1_3_31
+COPY ./graphicsmagick-1.3.31/ $SRC/graphicsmagick/
 
 RUN rm $SRC/graphicsmagick/fuzzing/oss-fuzz-build.sh
 COPY oss-fuzz-build.sh $SRC/graphicsmagick/fuzzing/

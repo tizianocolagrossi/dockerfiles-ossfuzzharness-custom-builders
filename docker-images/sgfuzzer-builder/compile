@@ -87,7 +87,7 @@ echo "CFLAGS=$CFLAGS"
 echo "CXXFLAGS=$CXXFLAGS"
 echo "CFLAGS_SANITIZERS=$CFLAGS_SANITIZERS"
 echo "---------------------------------------------------------------"
-
+ls $SRC/build.sh
 BUILD_CMD="bash -eux $SRC/build.sh"
 
 # Set +u temporarily to continue even if GOPATH and OSSFUZZ_RUSTPATH are undefined.

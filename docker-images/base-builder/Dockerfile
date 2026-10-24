@@ -35,22 +35,31 @@ ENV LIB_FUZZING_ENGINE_DEPRECATED="/usr/lib/libFuzzingEngine.a"
 # Defaults to the path, but is "-fsanitize=fuzzer" in libFuzzer builds.
 ENV LIB_FUZZING_ENGINE="/usr/lib/libFuzzingEngine.a"
 
-ENV ARCHITECTURE="x86_64"
+
 
 # TODO: remove after tpm2 catchup.
 ENV FUZZER_LDFLAGS=""
+
+ENV ARCHITECTURE="x86_64"
 
 WORKDIR $SRC
 
 # get version of aflplusplus v4.21c since double map is v4.21c taken from this version 
 # to have a sound comparison
+
+
+RUN --mount=type=ssh \
+  git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
+  
 RUN git clone https://github.com/AFLplusplus/AFLplusplus.git aflplusplus && \
     cd aflplusplus && \
     git checkout 9f6b012 
 
-RUN --mount=type=ssh \
-  git clone git@github.com:tizianocolagrossi/AFLppDoubleMap.git /src/AFLppDoubleMap 
 
+
+
+
+  
 # Do precompiles before copying other scripts for better cache efficiency.
 COPY precompile_aflpp /usr/local/bin/
 RUN precompile_aflpp

@@ -1,0 +1,36 @@
+diff --git a/utils/aflpp_driver/aflpp_driver.c b/utils/aflpp_driver/aflpp_driver.c
+index 9ffb2383..86a39b6a 100644
+--- a/utils/aflpp_driver/aflpp_driver.c
++++ b/utils/aflpp_driver/aflpp_driver.c
+@@ -348,13 +348,18 @@ __attribute__((weak)) int LLVMFuzzerRunDriver(
+ 
+   // Do any other expensive one-time initialization here.
+ 
+-  uint8_t dummy_input[64] = {0};
+-  memcpy(dummy_input, (void *)AFL_PERSISTENT, sizeof(AFL_PERSISTENT));
+-  memcpy(dummy_input + 32, (void *)AFL_DEFER_FORKSVR,
+-         sizeof(AFL_DEFER_FORKSVR));
++  // uint8_t dummy_input[64] = {0};
++  // memcpy(dummy_input, (void *)AFL_PERSISTENT, sizeof(AFL_PERSISTENT));
++  // memcpy(dummy_input + 32, (void *)AFL_DEFER_FORKSVR,
++  //        sizeof(AFL_DEFER_FORKSVR));
+ 
+   int N = INT_MAX;
+ 
++  fprintf(stderr, "argc %d\n", argc);
++  for(int i = 0; i<argc; i++){
++  fprintf(stderr, "arvi %d, %s\n", i, argv[i]);
++  }
++
+   if (!in_afl && argc == 2 && !strcmp(argv[1], "-")) {
+ 
+     __afl_manual_init();
+@@ -392,7 +397,7 @@ __attribute__((weak)) int LLVMFuzzerRunDriver(
+ 
+   // Call LLVMFuzzerTestOneInput here so that coverage caused by initialization
+   // on the first execution of LLVMFuzzerTestOneInput is ignored.
+-  callback(dummy_input, 4);
++  // callback(dummy_input, 4);
+ 
+   __asan_poison_memory_region(__afl_fuzz_ptr, MAX_FILE);
+   size_t prev_length = 0;

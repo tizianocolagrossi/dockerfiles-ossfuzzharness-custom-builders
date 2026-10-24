@@ -165,7 +165,7 @@ for build in $builds; do
   shift
 
   sanitizer_divided="${per_build_sanitizers// /_}"
-  build_dir=$HOME/sut-docker/debug-aflppdouble-v0.2.7-new-full/$project_name/$build/
+  build_dir=$HOME/sut-docker/libfuzzerplain/$project_name/$build/
 #   echo $build_dir
 #   echo $sanitizers
 #   echo $sanitizer_divided
@@ -179,6 +179,7 @@ for build in $builds; do
   echo "$sanitizers_env"
   mkdir -p $build_dir
 
+  echo "running..."
   docker run -it --rm \
     --env SANITIZERS="$per_build_sanitizers" \
     --env FUZZINGMODE="$fuzzing_mode" \
@@ -186,7 +187,7 @@ for build in $builds; do
     --env BUILDTYPE="$build" \
     --env BUILD_UID=$current_uid \
     --env SANITIZER="$sanitizers_env" \
-    -v $build_dir:/out -t osvaldo/$project_name #/bin/bash
+    -v $build_dir:/out -t osvaldo/$project_name /bin/bash
 
 done
 
